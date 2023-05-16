@@ -22,3 +22,8 @@ Compared to the original fork, this repository adopts the code for Khalani proto
 specified in `evmchains` of `config.json`, for example `EVM_CHAINS_KHALANITESTNET_RPC` — needed to move RPC URLs to mountable Kubernetes `Secret`s.
 - allow to disable captcha verification — needed to test the deployment and then register Google Captcha for the production domain
 - added Khalani Protocol branding (logo / docs)
+
+# Development
+First, prepare an `.env` file. Copy `.env.dist` to `.env` and set the `PK` ENV variable to the private key holding the tokens.
+
+Run `npm install` then `npm run dev`.
