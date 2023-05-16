@@ -11,9 +11,13 @@ import { ChainType, ConfigFileType, ERC20Type, EVMInstanceAndConfig, SendTokenRe
 
 import * as fs from 'fs';
 
+dotenv.config()
+
 function readConfigFile(): ConfigFileType {
+    const configPath = process.env.CONFIG_FILE ?? './config.json';
+    console.log(`Reading config file from ${configPath}`);
     const configFile: ConfigFileType = JSON.parse(
-      fs.readFileSync(process.env.CONFIG_FILE ?? './config.json', 'utf-8')
+      fs.readFileSync(configPath, 'utf-8')
     );
     configFile.evmchains.forEach((chain) => {
         const rpcEnvName = `EVM_CHAINS_${chain.ID}_RPC`;
@@ -26,8 +30,6 @@ function readConfigFile(): ConfigFileType {
 }
 
 const configFile: ConfigFileType = readConfigFile();
-
-dotenv.config()
 
 const app: any = express()
 const router = express.Router()
