@@ -7,6 +7,7 @@ import ERC20Interface from './ERC20Interface.json'
 import { ChainType, RequestType, SendTokenResponse } from './evmTypes'
 import { AbiItem } from 'web3-utils';
 import { Account } from 'web3-core';
+import { ERC20Type } from '../types';
 
 // cannot issue tx if no. of pending requests is > 16
 const MEMPOOL_LIMIT = 15
@@ -40,7 +41,15 @@ export default class EVM {
     queue: (RequestType & { nonce: number})[]
     error: boolean
     log: Log
-    contracts: any
+    contracts: Map<string, {
+        balance: BN;
+        balanceOf: (address: string) => any;
+        transfer: (to: string, value: BN) => any;
+        address: string,
+        dripAmount: number,
+        decimals: number,
+        gasLimit: string,
+    }>
     requestCount: number
     queuingInProgress: boolean
     blockFaucetDrips: boolean
@@ -153,11 +162,9 @@ export default class EVM {
         let amount: BN = this.DRIP_AMOUNT
 
         // If id is provided, then it is ERC20 token transfer, so update the amount
-        if(this.contracts.get(id)) {
-            const dripAmount: number = this.contracts.get(id).config.DRIP_AMOUNT
-            if(dripAmount) {
-                amount = calculateBaseUnit(dripAmount.toString(), this.contracts.get(id).config.DECIMALS || 18)
-            }
+        if (id) {
+            const erc20 = this.contracts.get(id)!;
+            amount = calculateBaseUnit(erc20.dripAmount.toString(), erc20.decimals || 18)
         }
 
         const requestId = receiver + id + Math.random().toString()
@@ -220,15 +227,11 @@ export default class EVM {
     }
 
     getBalance(id?: string): BN {
-        if(id && this.contracts.get(id)) {
-            return this.getERC20Balance(id)
+        if (id && this.contracts.get(id)) {
+            return this.contracts.get(id)!.balance;
         } else {
             return this.balance
         }
-    }
-
-    getERC20Balance(id: string): BN {
-        return this.contracts.get(id)?.balance
     }
 
     async fetchERC20Balance(): Promise<void> {
@@ -269,7 +272,7 @@ export default class EVM {
 
     balanceCheck(req: RequestType): Boolean {
         if (req.id) {
-            const contract = this.contracts.get(req.id);
+            const contract = this.contracts.get(req.id)!;
             if (contract.balance.gte(req.amount)) {
                 contract.balance = contract.balance.sub(req.amount)
                 return true
@@ -365,19 +368,20 @@ export default class EVM {
             value
         }
 
-        if(this.LEGACY) {
+        if (this.LEGACY) {
             delete tx["maxPriorityFeePerGas"]
             delete tx["maxFeePerGas"]
             tx.gasPrice = await this.getAdjustedGasPrice()
             tx.type = 0
         }
 
-        if(this.contracts.get(id)) {
-            const txObject = this.contracts.get(id)?.methods.transfer(to, value)
+        if (id) {
+            const erc20 = this.contracts.get(id)!;
+            const txObject = erc20.transfer(to, value);
             tx.data = txObject.encodeABI()
             tx.value = 0
-            tx.to = this.contracts.get(id)?.config.CONTRACTADDRESS
-            tx.gas = this.contracts.get(id)?.config.GASLIMIT
+            tx.to = erc20.address;
+            tx.gas = erc20.gasLimit.toString();
         }
 
         let signedTx
@@ -439,13 +443,18 @@ export default class EVM {
         }
     }
 
-    async addERC20Contract(config: any) {
+    async addERC20Contract(config: ERC20Type) {
         // Explicit cast to make "stateMutability" field assignable to StateMutabilityType
         const abiItem = ERC20Interface as AbiItem[];
+        const contract = new this.web3.eth.Contract(abiItem, config.CONTRACTADDRESS);
         this.contracts.set(config.ID, {
-            methods: (new this.web3.eth.Contract(abiItem, config.CONTRACTADDRESS)).methods,
-            balance: 0,
-            config
+            transfer: contract.methods.transfer,
+            balanceOf: contract.methods.balanceOf,
+            balance: new BN(0),
+            address: config.CONTRACTADDRESS,
+            dripAmount: config.DRIP_AMOUNT,
+            decimals: config.DECIMALS,
+            gasLimit: config.GASLIMIT,
         })
     }
 
