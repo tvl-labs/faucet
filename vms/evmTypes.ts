@@ -1,6 +1,9 @@
 import { BN } from 'avalanche'
 
 export type TransactionStatus = {
+    type: 'mem-pool',
+    request: RequestType
+} | {
     type: 'pending',
     txHash: string
 } | {
