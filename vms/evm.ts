@@ -41,7 +41,6 @@ export default class EVM {
     error: boolean
     log: Log
 
-    requestCount: number
     queuingInProgress: boolean
     isDelayedStart: boolean
     lastRecalibrationTimestamp: number;
@@ -67,7 +66,6 @@ export default class EVM {
         this.queuingInProgress = false
         this.lastRecalibrationTimestamp = 0
 
-        this.requestCount = 0
         this.waitArr = []
         this.queue = []
 
@@ -107,13 +105,10 @@ export default class EVM {
         }
 
         // do not accept any request if mempool limit reached
-        if (this.requestCount >= MEMPOOL_LIMIT) {
+        if (this.requestStatus.size >= MEMPOOL_LIMIT) {
             this.log.error(`Reached the mempool limit of ${MEMPOOL_LIMIT}`);
             return { status: 400, message: "High faucet usage! Please try after sometime" };
         }
-
-        // increasing request count before processing request
-        this.requestCount++
 
         let amount: BN = calculateBaseUnit(this.config.DRIP_AMOUNT.toString(), this.config.DECIMALS || 18)
 
@@ -125,7 +120,8 @@ export default class EVM {
 
         const requestId = receiver + id + Math.random().toString()
 
-        this.processRequest({ receiver, amount, id, requestId })
+        const request: RequestType = { receiver, amount, id, requestId };
+        this.processRequest(request)
 
         return new Promise((resolve) => {
             const statusCheckerInterval = setInterval(async () => {
@@ -150,11 +146,11 @@ export default class EVM {
         })
     }
 
-    async processRequest(req: RequestType): Promise<void> {
+    async processRequest(request: RequestType): Promise<void> {
         if (this.isRecalibrating) {
-            this.waitArr.push(req)
+            this.waitArr.push(request)
         } else {
-            this.putInQueue(req)
+            this.putInQueue(request)
         }
     }
 
@@ -216,13 +212,12 @@ export default class EVM {
             this.sendTokenUtil(request);
         } else {
             this.queuingInProgress = false
-            this.requestCount--
             this.log.warn("Faucet balance too low! " + req.id + " " + this.getBalance(req.id))
             this.requestStatus.set(req.requestId, { type: "error", errorMessage: "Faucet balance too low! Please try after sometime."})
         }
     }
 
-    async sendTokenUtil(request: RequestType & { nonce: number}): Promise<void> {
+    async sendTokenUtil(request: RequestType & { nonce: number}) {
         const { amount, receiver, nonce, id } = request;
 
         // request from queue is now moved to pending txs list
@@ -252,8 +247,6 @@ export default class EVM {
             this.requestStatus.set(request.requestId, { type: 'confirmed', txHash})
         } catch (err: any) {
             this.log.error(err.message)
-        } finally {
-            this.requestCount--
         }
     }
 
@@ -343,6 +336,6 @@ export default class EVM {
     }
 
     getFaucetUsage(): number {
-        return 100 * (this.requestCount / MEMPOOL_LIMIT)
+        return 100 * (this.requestStatus.size / MEMPOOL_LIMIT)
     }
 }
