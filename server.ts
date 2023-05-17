@@ -84,7 +84,8 @@ async function configureEvms(configFile: ConfigFileType): Promise<Map<string, EV
 
     // Setting up instance for EVM chains
     for (const chain of configFile.evmchains) {
-        const evm = new EVM(chain, process.env[chain.ID] || process.env.PK);
+        const pk = (process.env[chain.ID] || process.env.PK)!;
+        const evm = new EVM(chain, pk);
         await evm.start();
         evms.set(chain.ID, evm);
     }
