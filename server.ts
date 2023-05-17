@@ -167,7 +167,7 @@ function prepareRoutes(
 
         const evm = evms.get(chain)!
 
-        const usage: number = evm?.getFaucetUsage()
+        const usage: number = evm?.getFaucetUsagePercentage()
 
         res.status(200).send({
             usage
