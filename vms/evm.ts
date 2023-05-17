@@ -271,7 +271,7 @@ export default class EVM {
         if (this.isLegacyTransaction) {
             delete tx["maxPriorityFeePerGas"]
             delete tx["maxFeePerGas"]
-            tx.gasPrice = await this.getAdjustedGasPrice()
+            tx.gasPrice = await this.getLegacyGasPrice()
             tx.type = 0
         }
 
@@ -290,17 +290,11 @@ export default class EVM {
 
         return { txHash, rawTransaction }
     }
-    // get expected price from the network for legacy txs
-    async getAdjustedGasPrice(): Promise<number> {
-        try {
-            const gasPrice: number = new BN(await this.web3.eth.getGasPrice()).toNumber();
-            const adjustedGas: number = Math.floor(gasPrice * 1.25)
-            return Math.min(adjustedGas, parseInt(this.config.MAX_FEE))
-        } catch(err: any) {
-            this.error = true
-            this.log.error(err.message)
-            return 0
-        }
+
+    async getLegacyGasPrice(): Promise<number> {
+        const gasPrice: number = new BN(await this.web3.eth.getGasPrice()).toNumber();
+        const adjustedGas: number = Math.floor(gasPrice * 1.25)
+        return Math.min(adjustedGas, parseInt(this.config.MAX_FEE))
     }
 
     async recalibrateNonceAndBalance(): Promise<void> {
