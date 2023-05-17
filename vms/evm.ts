@@ -29,7 +29,7 @@ export default class EVM {
     pendingTxNonces: Set<unknown>
     hasError: Map<string, string | undefined>
     nonce: number
-    balance: any
+    balance: BN
     isFetched: boolean
     isUpdating: boolean
     recalibrate: boolean
