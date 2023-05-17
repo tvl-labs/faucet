@@ -428,18 +428,18 @@ export default class EVM {
     async recalibrateNonceAndBalance(): Promise<void> {
         this.waitingForRecalibration = true
 
-        if (this.pendingTxNonces.size === 0 && this.isUpdating === false && this.queuingInProgress === false) {
+        if (this.pendingTxNonces.size === 0 && !this.isUpdating && !this.queuingInProgress) {
             this.isFetched = false
             this.recalibrate = true
             this.waitingForRecalibration = false
             this.pendingTxNonces.clear()
 
             this.updateNonceAndBalance()
-        } else if (this.recalibrateNowActivated === false) {
+        } else if (!this.recalibrateNowActivated) {
             const recalibrateNow = setInterval(() => {
                 this.recalibrateNowActivated = true
 
-                if(this.pendingTxNonces.size === 0 && this.isUpdating === false && this.queuingInProgress === false) {
+                if (this.pendingTxNonces.size === 0 && !this.isUpdating && !this.queuingInProgress) {
                     clearInterval(recalibrateNow)
                     this.recalibrateNowActivated = false
                     this.waitingForRecalibration = false
