@@ -27,6 +27,7 @@ export default class EVM {
     nonce: number
     balance: BN
     contracts: Map<string, {
+        name: string;
         balance: BN;
         balanceOf: (address: string) => any;
         transfer: (to: string, value: BN) => any;
@@ -66,7 +67,10 @@ export default class EVM {
         setInterval(async () => {
             try {
                 if (await this.recalibrate()) {
-                    this.log.info(`Recalibration success`);
+                    const erc20Balances = Array.from(this.contracts.entries())
+                      .map(([, contract]) => `${contract.name} = ${contract.balance}`)
+                      .join(", ");
+                    this.log.info(`Recalibration success for chain ${this.config.NAME}. Native balance ${this.balance}. ERC20 balances: ${erc20Balances}`);
                 }
             } catch (e: any) {
                 this.log.error(`Recalibration failed: ${e.message}`)
@@ -281,6 +285,7 @@ export default class EVM {
         const abiItem = ERC20Interface as AbiItem[];
         const contract = new this.web3.eth.Contract(abiItem, config.CONTRACTADDRESS);
         this.contracts.set(config.ID, {
+            name: config.NAME,
             transfer: contract.methods.transfer,
             balanceOf: contract.methods.balanceOf,
             balance: new BN(0),
