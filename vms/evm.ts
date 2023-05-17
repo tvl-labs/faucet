@@ -270,14 +270,14 @@ export default class EVM {
     }
 
     balanceCheck(req: RequestType): Boolean {
-        const balance: BN = this.getBalance(req.id)
-        if(req.id && this.contracts.get(req.id)) {
-            if(this.contracts.get(req.id).balance.gte(req.amount)) {
-                this.contracts.get(req.id).balance = this.contracts.get(req.id).balance.sub(req.amount)
+        if (req.id) {
+            const contract = this.contracts.get(req.id);
+            if (contract.balance.gte(req.amount)) {
+                contract.balance = contract.balance.sub(req.amount)
                 return true
             }
         } else {
-            if(this.balance.gte(req.amount)) {
+            if (this.balance.gte(req.amount)) {
                 this.balance = this.balance.sub(req.amount)
                 return true
             }
