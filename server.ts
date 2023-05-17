@@ -122,15 +122,13 @@ function prepareRoutes(
         const erc20: string | undefined = req.body?.erc20
 
         const evm = evms.get(chain);
-
-        if (evm) {
-            await evm.sendToken(address, erc20, (data: SendTokenResponse) => {
-              const { status, message, txHash } = data
-              res.status(status).send({ message, txHash })
-            })
-        } else {
+        if (!evm) {
             res.status(400).send({ message: "Invalid parameters passed!" })
+            return;
         }
+
+        const { status, message, txHash } = await evm.sendToken(address, erc20);
+        res.status(status).send({ message, txHash })
     });
     router.post('/sendToken', sendTokenHandlers)
 
