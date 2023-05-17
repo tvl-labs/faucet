@@ -6,6 +6,7 @@ import Log from './Log'
 import ERC20Interface from './ERC20Interface.json'
 import { ChainType, RequestType, SendTokenResponse } from './evmTypes'
 import { AbiItem } from 'web3-utils';
+import { Account } from 'web3-core';
 
 // cannot issue tx if no. of pending requests is > 16
 const MEMPOOL_LIMIT = 15
@@ -17,7 +18,7 @@ const BLOCK_FAUCET_DRIPS_TIMEOUT = 60 * 1000 // 60 seconds
 
 export default class EVM {
     web3: Web3
-    account: any
+    account: Account
     address: string;
     NAME: string
     DRIP_AMOUNT: BN
