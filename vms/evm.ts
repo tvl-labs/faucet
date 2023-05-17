@@ -199,22 +199,24 @@ export default class EVM {
         return false
     }
 
-    async putInQueue(req: RequestType): Promise<void> {
-        // this will prevent recalibration if it's started after calling putInQueue() function
+    putInQueue(req: RequestType) {
         this.queuingInProgress = true
 
-        // checking faucet balance before putting request in queue
-        if (this.balanceCheck(req)) {
-            this.queue.push({ ...req, nonce: this.nonce })
-            this.nonce++
-
-            const request = this.queue.shift()!;
-            this.sendTokenUtil(request);
-        } else {
+        if (!this.balanceCheck(req)) {
             this.queuingInProgress = false
-            this.log.warn("Faucet balance too low! " + req.id + " " + this.getBalance(req.id))
-            this.requestStatus.set(req.requestId, { type: "error", errorMessage: "Faucet balance too low! Please try after sometime."})
+            this.log.warn("Faucet balance is too low! " + req.id + " " + this.getBalance(req.id))
+            this.requestStatus.set(req.requestId, {
+                type: "error",
+                errorMessage: "Faucet balance is too low! Please try later."
+            })
+            return
         }
+
+        this.queue.push({ ...req, nonce: this.nonce })
+        this.nonce++
+
+        const request = this.queue.shift()!;
+        this.sendTokenUtil(request);
     }
 
     async sendTokenUtil(request: RequestType & { nonce: number}) {
