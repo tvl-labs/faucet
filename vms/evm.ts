@@ -101,13 +101,6 @@ export default class EVM {
             this.recalibrateNonceAndBalance()
         }, this.RECALIBRATE * 1000)
 
-        // just a check that requestCount is within the range (will indicate race condition)
-        setInterval(() => {
-            if (this.requestCount > MEMPOOL_LIMIT || this.requestCount < 0) {
-                this.log.error(`request count not in range: ${this.requestCount}`)
-            }
-        }, 10 * 1000)
-
         // block requests during restart (to settle any pending txs initiated during shutdown)
         setTimeout(() => {
             this.log.info("starting faucet drips...")
@@ -152,6 +145,7 @@ export default class EVM {
 
         // do not accept any request if mempool limit reached
         if (this.requestCount >= MEMPOOL_LIMIT) {
+            this.log.error(`Reached the mempool limit of ${MEMPOOL_LIMIT}`);
             cb({ status: 400, message: "High faucet usage! Please try after sometime" })
             return
         }
