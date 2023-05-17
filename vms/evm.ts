@@ -167,11 +167,11 @@ export default class EVM {
                         message: `Transaction failed on ${this.NAME}! Please try again.`
                     })
                 }
-            } else if(this.hasError.get(receiver) != undefined) {
+            } else if (this.hasError.get(requestId) != undefined) {
                 clearInterval(waitingForNonce)
 
-                const errorMessage = this.hasError.get(receiver)!
-                this.hasError.set(receiver, undefined)
+                const errorMessage = this.hasError.get(requestId)!
+                this.hasError.set(requestId, undefined)
 
                 cb({
                     status: 400,
@@ -250,7 +250,7 @@ export default class EVM {
             this.queuingInProgress = false
             this.requestCount--
             this.log.warn("Faucet balance too low! " + req.id + " " + this.getBalance(req.id))
-            this.hasError.set(req.receiver, "Faucet balance too low! Please try after sometime.")
+            this.hasError.set(req.requestId, "Faucet balance too low! Please try after sometime.")
         }
     }
 

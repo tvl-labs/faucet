@@ -28,5 +28,5 @@ export type RequestType = {
     receiver: string,
     amount: BN,
     id?: string,
-    requestId?: string,
+    requestId: string,
 }
