@@ -90,7 +90,7 @@ export default class EVM {
     }
 
     async start() {
-        await this.setupTransactionType()
+        this.LEGACY = await this.isLegacyTransactionType()
 
         setInterval(() => this.recalibrateNonceAndBalance(), 1000);
 
@@ -102,17 +102,9 @@ export default class EVM {
     }
 
     // Setup Legacy or EIP1559 transaction type
-    async setupTransactionType(): Promise<void> {
-        try {
-            const baseFee = (await this.web3.eth.getBlock('latest')).baseFeePerGas
-            if(baseFee == undefined) {
-                this.LEGACY = true
-            }
-            this.error = false
-        } catch(err: any) {
-            this.error = true
-            this.log.error(err.message)
-        }
+    async isLegacyTransactionType(): Promise<boolean> {
+        const baseFee = (await this.web3.eth.getBlock('latest')).baseFeePerGas
+        return baseFee === undefined
     }
 
     // Function to issue transfer transaction. For ERC20 transfers, 'id' will be a string representing ERC20 token ID
@@ -123,11 +115,6 @@ export default class EVM {
     ): Promise<void> {
         if(this.blockFaucetDrips) {
             cb({ status: 400, message: "Faucet is getting started! Please try after sometime"})
-            return
-        }
-
-        if(this.error) {
-            cb({ status: 400, message: "Internal RPC error! Please try after sometime"})
             return
         }
 
