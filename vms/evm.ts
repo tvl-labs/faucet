@@ -47,7 +47,7 @@ export default class EVM {
     }>
     requestCount: number
     queuingInProgress: boolean
-    blockFaucetDrips: boolean
+    isDelayedStart: boolean
     recalibrateNowActivated: boolean
     lastRecalibrationTimestamp: number;
 
@@ -82,7 +82,7 @@ export default class EVM {
         this.queue = []
 
         this.error = false
-        this.blockFaucetDrips = true
+        this.isDelayedStart = true
     }
 
     async start() {
@@ -93,7 +93,7 @@ export default class EVM {
         // block requests during restart (to settle any pending txs initiated during shutdown)
         setTimeout(() => {
             this.log.info("starting faucet drips...")
-            this.blockFaucetDrips = false
+            this.isDelayedStart = false
         }, BLOCK_FAUCET_DRIPS_TIMEOUT);
     }
 
@@ -108,7 +108,7 @@ export default class EVM {
         receiver: string,
         id: string | undefined
     ): Promise<SendTokenResponse> {
-        if (this.blockFaucetDrips) {
+        if (this.isDelayedStart) {
             return { status: 400, message: "Faucet is getting started! Please try after sometime"};
         }
 
