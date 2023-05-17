@@ -36,7 +36,7 @@ export default class EVM {
     isUpdating: boolean
     recalibrate: boolean
     waitingForRecalibration: boolean
-    waitArr: any[]
+    waitArr: RequestType[]
     queue: any[]
     error: boolean
     log: Log
@@ -257,8 +257,8 @@ export default class EVM {
             this.isUpdating = false
             this.recalibrate = false
 
-            while(this.waitArr.length != 0) {
-                this.putInQueue(this.waitArr.shift())
+            while (this.waitArr.length != 0) {
+                this.putInQueue(this.waitArr.shift()!);
             }
         } catch(err: any) {
             this.isUpdating = false
