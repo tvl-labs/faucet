@@ -179,7 +179,7 @@ export default class EVM {
         const nonce = this.nonce;
         this.nonce++;
 
-        const { txHash, rawTransaction } = await this.getTransaction(receiver, amount, nonce, id)
+        const { txHash, rawTransaction } = await this.getSignedTransaction(receiver, amount, nonce, id)
         this.requestStatus.set(request.requestId, { type: "pending", txHash });
 
         try {
@@ -197,7 +197,7 @@ export default class EVM {
         this.requestStatus.set(request.requestId, { type: 'confirmed', txHash})
     }
 
-    async getTransaction(
+    async getSignedTransaction(
         to: string,
         value: BN,
         nonce: number | undefined,
