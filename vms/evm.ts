@@ -106,24 +106,20 @@ export default class EVM {
     // Function to issue transfer transaction. For ERC20 transfers, 'id' will be a string representing ERC20 token ID
     async sendToken(
         receiver: string,
-        id: string | undefined,
-        cb: (param: SendTokenResponse) => void
-    ): Promise<void> {
-        if(this.blockFaucetDrips) {
-            cb({ status: 400, message: "Faucet is getting started! Please try after sometime"})
-            return
+        id: string | undefined
+    ): Promise<SendTokenResponse> {
+        if (this.blockFaucetDrips) {
+            return { status: 400, message: "Faucet is getting started! Please try after sometime"};
         }
 
         if (!this.web3.utils.isAddress(receiver)) {
-            cb({ status: 400, message: "Invalid address! Please try again." })
-            return
+            return { status: 400, message: "Invalid address! Please try again." };
         }
 
         // do not accept any request if mempool limit reached
         if (this.requestCount >= MEMPOOL_LIMIT) {
             this.log.error(`Reached the mempool limit of ${MEMPOOL_LIMIT}`);
-            cb({ status: 400, message: "High faucet usage! Please try after sometime" })
-            return
+            return { status: 400, message: "High faucet usage! Please try after sometime" };
         }
 
         // increasing request count before processing request
@@ -141,25 +137,27 @@ export default class EVM {
 
         this.processRequest({ receiver, amount, id, requestId })
 
-        const statusCheckerInterval = setInterval(async () => {
-            const requestStatus = this.requestStatus.get(requestId);
-            if (requestStatus) {
-                clearInterval(statusCheckerInterval)
-                this.requestStatus.delete(requestId);
-                switch (requestStatus.type) {
-                    case 'pending':
-                        cb({ status: 200, message: `Transactio sent on ${this.NAME}`, txHash: requestStatus.txHash })
-                        break;
-                    case 'error':
-                        const errorMessage = requestStatus?.errorMessage
-                        cb({ status: 400, message: errorMessage})
-                        break;
-                    case 'confirmed':
-                        cb({ status: 200, message: `Transaction successful on ${this.NAME}!`, txHash: requestStatus.txHash })
-                        break;
+        return new Promise((resolve) => {
+            const statusCheckerInterval = setInterval(async () => {
+                const requestStatus = this.requestStatus.get(requestId);
+                if (requestStatus) {
+                    clearInterval(statusCheckerInterval)
+                    this.requestStatus.delete(requestId);
+                    switch (requestStatus.type) {
+                        case 'pending':
+                            resolve({ status: 200, message: `Transactio sent on ${this.NAME}`, txHash: requestStatus.txHash })
+                            break;
+                        case 'error':
+                            const errorMessage = requestStatus?.errorMessage
+                            resolve({ status: 400, message: errorMessage})
+                            break;
+                        case 'confirmed':
+                            resolve({ status: 200, message: `Transaction successful on ${this.NAME}!`, txHash: requestStatus.txHash })
+                            break;
+                    }
                 }
-            }
-        }, 300)
+            }, 300)
+        })
     }
 
     async processRequest(req: RequestType): Promise<void> {
