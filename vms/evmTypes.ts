@@ -1,5 +1,16 @@
 import { BN } from 'avalanche'
 
+export type TransactionStatus = {
+    type: 'pending',
+    txHash: string
+} | {
+    type: 'error',
+    errorMessage: string
+} | {
+    type: 'confirmed',
+    txHash: string
+}
+
 export type SendTokenResponse = {
     status: number,
     message: string,

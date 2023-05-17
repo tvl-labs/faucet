@@ -4,7 +4,7 @@ import Web3 from 'web3'
 import { asyncCallWithTimeout, calculateBaseUnit } from './utils'
 import Log from './log'
 import ERC20Interface from './ERC20Interface.json'
-import { RequestType, SendTokenResponse } from './evmTypes'
+import { RequestType, SendTokenResponse, TransactionStatus } from './evmTypes'
 import { AbiItem } from 'web3-utils';
 import { Account } from 'web3-core';
 import { ChainType, ERC20Type } from '../types';
@@ -28,9 +28,7 @@ export default class EVM {
     MAX_PRIORITY_FEE: string
     MAX_FEE: string
     RECALIBRATE: number
-    hasNonce: Map<string, number | undefined>
-    pendingTxNonces: Set<unknown>
-    hasError: Map<string, string | undefined>
+    requestStatus: Map<string, TransactionStatus>
     nonce: number
     balance: BN
     isRecalibrating: boolean
@@ -69,9 +67,7 @@ export default class EVM {
 
         this.log = new Log(this.NAME)
 
-        this.hasNonce = new Map()
-        this.hasError = new Map()
-        this.pendingTxNonces = new Set()
+        this.requestStatus = new Map();
 
         this.nonce = -1
         this.balance = new BN(0)
@@ -145,38 +141,23 @@ export default class EVM {
 
         this.processRequest({ receiver, amount, id, requestId })
 
-        // After transaction is being processed, the nonce will be available and txHash can be returned to user
-        const waitingForNonce = setInterval(async () => {
-            const nonce: number | undefined = this.hasNonce.get(requestId)
-            if (nonce != undefined) {
-                clearInterval(waitingForNonce)
-
-                this.hasNonce.set(requestId, undefined)
-
-                const { txHash } = await this.getTransaction(receiver, amount, nonce, id)
-
-                if(txHash) {
-                    cb({
-                        status: 200,
-                        message: `Transaction successful on ${this.NAME}!`,
-                        txHash
-                    })
-                } else {
-                    cb({
-                        status: 400,
-                        message: `Transaction failed on ${this.NAME}! Please try again.`
-                    })
+        const statusCheckerInterval = setInterval(async () => {
+            const requestStatus = this.requestStatus.get(requestId);
+            if (requestStatus) {
+                clearInterval(statusCheckerInterval)
+                this.requestStatus.delete(requestId);
+                switch (requestStatus.type) {
+                    case 'pending':
+                        cb({ status: 200, message: `Transactio sent on ${this.NAME}`, txHash: requestStatus.txHash })
+                        break;
+                    case 'error':
+                        const errorMessage = requestStatus?.errorMessage
+                        cb({ status: 400, message: errorMessage})
+                        break;
+                    case 'confirmed':
+                        cb({ status: 200, message: `Transaction successful on ${this.NAME}!`, txHash: requestStatus.txHash })
+                        break;
                 }
-            } else if (this.hasError.get(requestId) != undefined) {
-                clearInterval(waitingForNonce)
-
-                const errorMessage = this.hasError.get(requestId)!
-                this.hasError.set(requestId, undefined)
-
-                cb({
-                    status: 400,
-                    message: errorMessage
-                })
             }
         }, 300)
     }
@@ -241,32 +222,26 @@ export default class EVM {
         // checking faucet balance before putting request in queue
         if (this.balanceCheck(req)) {
             this.queue.push({ ...req, nonce: this.nonce })
-            this.hasNonce.set(req.requestId!, this.nonce)
             this.nonce++
 
-            const { amount, receiver, nonce, id } = this.queue.shift()!;
-            this.sendTokenUtil(amount, receiver, nonce, id)
+            const request = this.queue.shift()!;
+            this.sendTokenUtil(request);
         } else {
             this.queuingInProgress = false
             this.requestCount--
             this.log.warn("Faucet balance too low! " + req.id + " " + this.getBalance(req.id))
-            this.hasError.set(req.requestId, "Faucet balance too low! Please try after sometime.")
+            this.requestStatus.set(req.requestId, { type: "error", errorMessage: "Faucet balance too low! Please try after sometime."})
         }
     }
 
-    async sendTokenUtil(
-        amount: BN,
-        receiver: string,
-        nonce: number,
-        id?: string
-    ): Promise<void> {
-        // adding pending tx nonce in a set to prevent recalibration
-        this.pendingTxNonces.add(nonce)
+    async sendTokenUtil(request: RequestType & { nonce: number}): Promise<void> {
+        const { amount, receiver, nonce, id } = request;
 
         // request from queue is now moved to pending txs list
         this.queuingInProgress = false
 
-        const { rawTransaction } = await this.getTransaction(receiver, amount, nonce, id)
+        const { txHash, rawTransaction } = await this.getTransaction(receiver, amount, nonce, id)
+        this.requestStatus.set(request.requestId, { type: "pending", txHash });
 
         /*
         * [CRITICAL]
@@ -285,10 +260,11 @@ export default class EVM {
                 PENDING_TX_TIMEOUT,
                 `Timeout reached for transaction with nonce ${nonce}`,
             )
+
+            this.requestStatus.set(request.requestId, { type: 'confirmed', txHash})
         } catch (err: any) {
             this.log.error(err.message)
         } finally {
-            this.pendingTxNonces.delete(nonce)
             this.requestCount--
         }
     }
@@ -298,7 +274,7 @@ export default class EVM {
         value: BN,
         nonce: number | undefined,
         id?: string
-    ): Promise<any> {
+    ): Promise<{ txHash: string, rawTransaction: string }> {
         const tx: any = {
             type: 2,
             gas: "21000",
@@ -325,15 +301,9 @@ export default class EVM {
             tx.gas = erc20.gasLimit.toString();
         }
 
-        let signedTx
-        try {
-            signedTx = await this.account.signTransaction(tx)
-        } catch(err: any) {
-            this.error = true
-            this.log.error(err.message)
-        }
-        const txHash = signedTx?.transactionHash
-        const rawTransaction = signedTx?.rawTransaction
+        const signedTx = await this.account.signTransaction(tx);
+        const txHash = signedTx.transactionHash!;
+        const rawTransaction = signedTx.rawTransaction!;
 
         return { txHash, rawTransaction }
     }
@@ -358,7 +328,7 @@ export default class EVM {
         const nowTimestamp = Date.now();
         const isTimeToRecalibrate = (nowTimestamp - this.lastRecalibrationTimestamp) / 1000 > this.RECALIBRATE;
 
-        if (this.pendingTxNonces.size === 0 && !this.queuingInProgress && isTimeToRecalibrate) {
+        if (this.requestStatus.size === 0 && !this.queuingInProgress && isTimeToRecalibrate) {
             this.lastRecalibrationTimestamp = nowTimestamp;
             this.isRecalibrating = true
             try {
