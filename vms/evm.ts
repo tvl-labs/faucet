@@ -82,7 +82,7 @@ export default class EVM {
 
         // block requests during restart (to settle any pending txs initiated during shutdown)
         setTimeout(() => {
-            this.log.info("starting faucet drips...")
+            this.log.info("Faucet is ready to start serving requests...")
             this.isDelayedStart = false
         }, BLOCK_FAUCET_DRIPS_TIMEOUT);
     }
