@@ -2,7 +2,7 @@ import { BN } from 'avalanche'
 import Web3 from 'web3'
 
 import { asyncCallWithTimeout, calculateBaseUnit } from './utils'
-import Log from './Log'
+import Log from './log'
 import ERC20Interface from './ERC20Interface.json'
 import { ChainType, RequestType, SendTokenResponse } from './evmTypes'
 import { AbiItem } from 'web3-utils';
