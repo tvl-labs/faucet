@@ -4,7 +4,8 @@ import Web3 from 'web3'
 import { asyncCallWithTimeout, calculateBaseUnit } from './utils'
 import Log from './Log'
 import ERC20Interface from './ERC20Interface.json'
-import { ChainType, SendTokenResponse, RequestType } from './evmTypes'
+import { ChainType, RequestType, SendTokenResponse } from './evmTypes'
+import { AbiItem } from 'web3-utils';
 
 // cannot issue tx if no. of pending requests is > 16
 const MEMPOOL_LIMIT = 15
@@ -15,7 +16,7 @@ const PENDING_TX_TIMEOUT = 40 * 1000 // 40 seconds
 const BLOCK_FAUCET_DRIPS_TIMEOUT = 60 * 1000 // 60 seconds
 
 export default class EVM {
-    web3: any
+    web3: Web3
     account: any
     address: string;
     NAME: string
@@ -44,7 +45,7 @@ export default class EVM {
     blockFaucetDrips: boolean
     recalibrateNowActivated: boolean
 
-    constructor(config: ChainType, PK: string | undefined) {
+    constructor(config: ChainType, PK: string) {
         this.web3 = new Web3(config.RPC)
         this.account = this.web3.eth.accounts.privateKeyToAccount(PK)
         this.address = this.account.address;
@@ -243,14 +244,10 @@ export default class EVM {
 
         this.isUpdating = true
         try {
-            [this.nonce, this.balance] = await Promise.all([
-                this.web3.eth.getTransactionCount(this.address, 'latest'),
-                this.web3.eth.getBalance(this.address),
-            ])
+            this.nonce = await this.web3.eth.getTransactionCount(this.address, 'latest');
+            this.balance = new BN(await this.web3.eth.getBalance(this.address));
 
             await this.fetchERC20Balance()
-
-            this.balance = new BN(this.balance)
 
             this.error && this.log.info("RPC server recovered!")
             this.error = false
@@ -397,15 +394,10 @@ export default class EVM {
 
         return { txHash, rawTransaction }
     }
-
-    async getGasPrice(): Promise<number> {
-        return this.web3.eth.getGasPrice()
-    }
-
     // get expected price from the network for legacy txs
     async getAdjustedGasPrice(): Promise<number> {
         try {
-            const gasPrice: number = await this.getGasPrice()
+            const gasPrice: number = new BN(await this.web3.eth.getGasPrice()).toNumber();
             const adjustedGas: number = Math.floor(gasPrice * 1.25)
             return Math.min(adjustedGas, parseInt(this.MAX_FEE))
         } catch(err: any) {
@@ -450,8 +442,10 @@ export default class EVM {
     }
 
     async addERC20Contract(config: any) {
+        // Explicit cast to make "stateMutability" field assignable to StateMutabilityType
+        const abiItem = ERC20Interface as AbiItem[];
         this.contracts.set(config.ID, {
-            methods: (new this.web3.eth.Contract(ERC20Interface, config.CONTRACTADDRESS)).methods,
+            methods: (new this.web3.eth.Contract(abiItem, config.CONTRACTADDRESS)).methods,
             balance: 0,
             config
         })
