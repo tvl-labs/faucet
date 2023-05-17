@@ -33,10 +33,7 @@ export default class EVM {
     hasError: Map<string, string | undefined>
     nonce: number
     balance: BN
-    isFetched: boolean
-    isUpdating: boolean
-    recalibrate: boolean
-    waitingForRecalibration: boolean
+    isRecalibrating: boolean
     waitArr: RequestType[]
     queue: (RequestType & { nonce: number})[]
     error: boolean
@@ -54,6 +51,7 @@ export default class EVM {
     queuingInProgress: boolean
     blockFaucetDrips: boolean
     recalibrateNowActivated: boolean
+    lastRecalibrationTimestamp: number;
 
     constructor(config: ChainType, PK: string) {
         this.web3 = new Web3(config.RPC)
@@ -78,12 +76,10 @@ export default class EVM {
         this.nonce = -1
         this.balance = new BN(0)
 
-        this.isFetched = false
-        this.isUpdating = false
-        this.recalibrate = false
-        this.waitingForRecalibration = false
+        this.isRecalibrating = false
         this.queuingInProgress = false
         this.recalibrateNowActivated = false
+        this.lastRecalibrationTimestamp = 0
 
         this.requestCount = 0
         this.waitArr = []
@@ -95,11 +91,8 @@ export default class EVM {
 
     async start() {
         await this.setupTransactionType()
-        await this.recalibrateNonceAndBalance()
 
-        setInterval(() => {
-            this.recalibrateNonceAndBalance()
-        }, this.RECALIBRATE * 1000)
+        setInterval(() => this.recalibrateNonceAndBalance(), 1000);
 
         // block requests during restart (to settle any pending txs initiated during shutdown)
         setTimeout(() => {
@@ -201,20 +194,9 @@ export default class EVM {
         }, 300)
     }
 
-    /*
-    * put in waiting array, if:
-    * 1. balance/nonce is not fetched yet
-    * 2. recalibrate in progress
-    * 3. waiting for pending txs to confirm to begin recalibration
-    *
-    * else put in execution queue
-    */
     async processRequest(req: RequestType): Promise<void> {
-        if (!this.isFetched || this.recalibrate || this.waitingForRecalibration) {
+        if (this.isRecalibrating) {
             this.waitArr.push(req)
-            if (!this.isUpdating && !this.waitingForRecalibration) {
-                await this.updateNonceAndBalance()
-            }
         } else {
             this.putInQueue(req)
         }
@@ -229,12 +211,6 @@ export default class EVM {
     }
 
     async updateNonceAndBalance(): Promise<void> {
-        // skip if already updating
-        if (this.isUpdating) {
-            return
-        }
-
-        this.isUpdating = true
         try {
             this.nonce = await this.web3.eth.getTransactionCount(this.address, 'latest');
             this.balance = new BN(await this.web3.eth.getBalance(this.address));
@@ -246,15 +222,10 @@ export default class EVM {
             this.error && this.log.info("RPC server recovered!")
             this.error = false
 
-            this.isFetched = true
-            this.isUpdating = false
-            this.recalibrate = false
-
             while (this.waitArr.length != 0) {
                 this.putInQueue(this.waitArr.shift()!);
             }
         } catch(err: any) {
-            this.isUpdating = false
             this.error = true
             this.log.error(err.message)
         }
@@ -276,12 +247,6 @@ export default class EVM {
         return false
     }
 
-    /*
-    * 1. pushes a request in queue with the last calculated nonce
-    * 2. sets `hasNonce` corresponding to `requestId` so users receive expected tx_hash
-    * 3. increments the nonce for future request
-    * 4. executes the queue
-    */
     async putInQueue(req: RequestType): Promise<void> {
         // this will prevent recalibration if it's started after calling putInQueue() function
         this.queuingInProgress = true
@@ -302,7 +267,6 @@ export default class EVM {
         }
     }
 
-    // pops the 1st request in queue, and call the utility function to issue the tx
     async sendTokenUtil(
         amount: BN,
         receiver: string,
@@ -399,37 +363,22 @@ export default class EVM {
         }
     }
 
-    /*
-    * This function will trigger the re-calibration of nonce and balance.
-    * 1. Sets `waitingForRecalibration` to `true`.
-    * 2. Will not trigger re-calibration if:
-    *   a. any txs are pending
-    *   b. nonce or balance are already getting updated
-    *   c. any request is being queued up for execution
-    * 3. Checks at regular interval, when all the above conditions are suitable for re-calibration
-    * 4. Keeps any new incoming request into `waitArr` until nonce and balance are updated
-    */
     async recalibrateNonceAndBalance(): Promise<void> {
-        this.waitingForRecalibration = true
+        if (this.isRecalibrating) {
+            return;
+        }
 
-        if (this.pendingTxNonces.size === 0 && !this.isUpdating && !this.queuingInProgress) {
-            this.isFetched = false
-            this.recalibrate = true
-            this.waitingForRecalibration = false
-            this.pendingTxNonces.clear()
+        const nowTimestamp = Date.now();
+        const isTimeToRecalibrate = (nowTimestamp - this.lastRecalibrationTimestamp) / 1000 > this.RECALIBRATE;
 
-            this.updateNonceAndBalance()
-        } else if (!this.recalibrateNowActivated) {
-            const recalibrateNow = setInterval(() => {
-                this.recalibrateNowActivated = true
-
-                if (this.pendingTxNonces.size === 0 && !this.isUpdating && !this.queuingInProgress) {
-                    clearInterval(recalibrateNow)
-                    this.recalibrateNowActivated = false
-                    this.waitingForRecalibration = false
-                    this.recalibrateNonceAndBalance()
-                }
-            }, 300)
+        if (this.pendingTxNonces.size === 0 && !this.queuingInProgress && isTimeToRecalibrate) {
+            this.lastRecalibrationTimestamp = nowTimestamp;
+            this.isRecalibrating = true
+            try {
+                await this.updateNonceAndBalance()
+            } finally {
+                this.isRecalibrating = false
+            }
         }
     }
 
