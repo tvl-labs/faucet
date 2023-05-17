@@ -8,18 +8,25 @@ export function calculateBaseUnit(amount: string, decimals: number): BN {
     return new BN(amount)
 }
 
-export const asyncCallWithTimeout = async (asyncPromise: Promise<void>, timeLimit: number, timeoutMessage: string) => {
-    let timeoutHandle: NodeJS.Timeout;
+export async function asyncCallWithTimeout<T>(
+  asyncPromise: Promise<T>,
+  timeLimit: number,
+  timeoutMessage: string
+): Promise<T> {
+    let timeoutHandle: NodeJS.Timeout | undefined;
 
-    const timeoutPromise = new Promise((_resolve, reject) => {
+    const timeoutPromise = new Promise<T>((_resolve, reject) => {
         timeoutHandle = setTimeout(
-            () => reject(new Error(timeoutMessage)),
-            timeLimit
+          () => reject(new Error(timeoutMessage)),
+          timeLimit
         );
     });
 
-    return Promise.race([asyncPromise, timeoutPromise]).then(result => {
-        clearTimeout(timeoutHandle);
-        return result;
-    })
+    try {
+        return await Promise.race([asyncPromise, timeoutPromise]);
+    } finally {
+        if (timeoutHandle) {
+            clearTimeout(timeoutHandle);
+        }
+    }
 }
