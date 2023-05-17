@@ -80,9 +80,11 @@ export default class EVM {
 
         this.error = false
         this.blockFaucetDrips = true
+    }
 
-        this.setupTransactionType()
-        this.recalibrateNonceAndBalance()
+    async start() {
+        await this.setupTransactionType()
+        await this.recalibrateNonceAndBalance()
 
         setInterval(() => {
             this.recalibrateNonceAndBalance()
@@ -99,7 +101,7 @@ export default class EVM {
         setTimeout(() => {
             this.log.info("starting faucet drips...")
             this.blockFaucetDrips = false
-        }, BLOCK_FAUCET_DRIPS_TIMEOUT)
+        }, BLOCK_FAUCET_DRIPS_TIMEOUT);
     }
 
     // Setup Legacy or EIP1559 transaction type
