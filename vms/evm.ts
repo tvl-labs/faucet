@@ -4,10 +4,10 @@ import Web3 from 'web3'
 import { asyncCallWithTimeout, calculateBaseUnit } from './utils'
 import Log from './log'
 import ERC20Interface from './ERC20Interface.json'
-import { ChainType, RequestType, SendTokenResponse } from './evmTypes'
+import { RequestType, SendTokenResponse } from './evmTypes'
 import { AbiItem } from 'web3-utils';
 import { Account } from 'web3-core';
-import { ERC20Type } from '../types';
+import { ChainType, ERC20Type } from '../types';
 
 // cannot issue tx if no. of pending requests is > 16
 const MEMPOOL_LIMIT = 15
