@@ -17,6 +17,7 @@ const BLOCK_FAUCET_DRIPS_TIMEOUT = 60 * 1000 // 60 seconds
 export default class EVM {
     web3: any
     account: any
+    address: string;
     NAME: string
     DRIP_AMOUNT: BN
     DECIMALS: number
@@ -46,6 +47,7 @@ export default class EVM {
     constructor(config: ChainType, PK: string | undefined) {
         this.web3 = new Web3(config.RPC)
         this.account = this.web3.eth.accounts.privateKeyToAccount(PK)
+        this.address = this.account.address;
         this.contracts = new Map()
 
         this.NAME = config.NAME
@@ -162,12 +164,12 @@ export default class EVM {
         const waitingForNonce = setInterval(async () => {
             if (this.hasNonce.get(requestId) != undefined) {
                 clearInterval(waitingForNonce)
-                
+
                 const nonce: number | undefined = this.hasNonce.get(requestId)
                 this.hasNonce.set(requestId, undefined)
-                
+
                 const { txHash } = await this.getTransaction(receiver, amount, nonce, id)
-                
+
                 if(txHash) {
                     cb({
                         status: 200,
@@ -182,10 +184,10 @@ export default class EVM {
                 }
             } else if(this.hasError.get(receiver) != undefined) {
                 clearInterval(waitingForNonce)
-                
+
                 const errorMessage = this.hasError.get(receiver)!
                 this.hasError.set(receiver, undefined)
-                
+
                 cb({
                     status: 400,
                     message: errorMessage
@@ -199,7 +201,7 @@ export default class EVM {
     * 1. balance/nonce is not fetched yet
     * 2. recalibrate in progress
     * 3. waiting for pending txs to confirm to begin recalibration
-    * 
+    *
     * else put in execution queue
     */
     async processRequest(req: RequestType): Promise<void> {
@@ -227,7 +229,7 @@ export default class EVM {
 
     async fetchERC20Balance(): Promise<void> {
         this.contracts.forEach(async (contract: any) => {
-            contract.balance = new BN(await contract.methods.balanceOf(this.account.address).call())
+            contract.balance = new BN(await contract.methods.balanceOf(this.address).call())
         })
     }
 
@@ -240,8 +242,8 @@ export default class EVM {
         this.isUpdating = true
         try {
             [this.nonce, this.balance] = await Promise.all([
-                this.web3.eth.getTransactionCount(this.account.address, 'latest'),
-                this.web3.eth.getBalance(this.account.address),
+                this.web3.eth.getTransactionCount(this.address, 'latest'),
+                this.web3.eth.getBalance(this.address),
             ])
 
             await this.fetchERC20Balance()
@@ -249,7 +251,7 @@ export default class EVM {
             this.balance = new BN(this.balance)
 
             this.error && this.log.info("RPC server recovered!")
-            this.error = false 
+            this.error = false
 
             this.isFetched = true
             this.isUpdating = false
