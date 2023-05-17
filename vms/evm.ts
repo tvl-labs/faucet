@@ -298,7 +298,9 @@ export default class EVM {
             this.queue.push({ ...req, nonce: this.nonce })
             this.hasNonce.set(req.requestId!, this.nonce)
             this.nonce++
-            this.executeQueue()
+
+            const { amount, receiver, nonce1, id } = this.queue.shift()
+            this.sendTokenUtil(amount, receiver, nonce1, id)
         } else {
             this.queuingInProgress = false
             this.requestCount--
@@ -308,11 +310,6 @@ export default class EVM {
     }
 
     // pops the 1st request in queue, and call the utility function to issue the tx
-    async executeQueue(): Promise<void> {
-        const { amount, receiver, nonce, id } = this.queue.shift()
-        this.sendTokenUtil(amount, receiver, nonce, id)
-    }
-
     async sendTokenUtil(
         amount: number,
         receiver: string,
