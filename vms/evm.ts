@@ -234,12 +234,6 @@ export default class EVM {
         }
     }
 
-    async fetchERC20Balance(): Promise<void> {
-        this.contracts.forEach(async (contract: any) => {
-            contract.balance = new BN(await contract.methods.balanceOf(this.address).call())
-        })
-    }
-
     async updateNonceAndBalance(): Promise<void> {
         // skip if already updating
         if (this.isUpdating) {
@@ -251,7 +245,9 @@ export default class EVM {
             this.nonce = await this.web3.eth.getTransactionCount(this.address, 'latest');
             this.balance = new BN(await this.web3.eth.getBalance(this.address));
 
-            await this.fetchERC20Balance()
+            for (const [_, contract] of Array.from(this.contracts.entries())) {
+                contract.balance = new BN(await contract.balanceOf(this.address).call())
+            }
 
             this.error && this.log.info("RPC server recovered!")
             this.error = false
