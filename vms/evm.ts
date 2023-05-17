@@ -16,10 +16,16 @@ const MEM_POOL_LIMIT = 15
 const PENDING_TX_TIMEOUT = 40 * 1000 // 40 seconds
 
 export default class EVM {
+    private config: ChainType;
+
     web3: Web3
     account: Account
     address: string;
     isLegacyTransaction: boolean
+    log: Log
+
+    nonce: number
+    balance: BN
     contracts: Map<string, {
         balance: BN;
         balanceOf: (address: string) => any;
@@ -29,16 +35,11 @@ export default class EVM {
         decimals: number,
         gasLimit: string,
     }>
-
     requestStatus: Map<string, TransactionStatus>
-    nonce: number
-    balance: BN
-    isRecalibrating: boolean
     error: boolean
-    log: Log
 
+    isRecalibrating: boolean
     lastRecalibrationTimestamp: number;
-    private config: ChainType;
 
     constructor(config: ChainType, PK: string) {
         this.web3 = new Web3(config.RPC)
