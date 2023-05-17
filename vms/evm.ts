@@ -36,7 +36,6 @@ export default class EVM {
         gasLimit: string,
     }>
     requestStatus: Map<string, TransactionStatus>
-    error: boolean
 
     isRecalibrating: boolean
     lastRecalibrationTimestamp: number;
@@ -59,14 +58,20 @@ export default class EVM {
 
         this.isRecalibrating = false
         this.lastRecalibrationTimestamp = 0
-
-        this.error = false
     }
 
     async start() {
         this.isLegacyTransaction = await this.isLegacyTransactionType()
 
-        setInterval(() => this.recalibrate(), 1000);
+        setInterval(async () => {
+            try {
+                if (await this.recalibrate()) {
+                    this.log.info(`Recalibration success`);
+                }
+            } catch (e: any) {
+                this.log.error(`Recalibration failed: ${e.message}`)
+            }
+        }, 1000);
 
         setInterval(() => this.schedule(), 1000);
     }
@@ -135,19 +140,11 @@ export default class EVM {
     }
 
     async updateNonceAndBalance(): Promise<void> {
-        try {
-            this.nonce = await this.web3.eth.getTransactionCount(this.address, 'latest');
-            this.balance = new BN(await this.web3.eth.getBalance(this.address));
+        this.nonce = await this.web3.eth.getTransactionCount(this.address, 'latest');
+        this.balance = new BN(await this.web3.eth.getBalance(this.address));
 
-            for (const [_, contract] of Array.from(this.contracts.entries())) {
-                contract.balance = new BN(await contract.balanceOf(this.address).call())
-            }
-
-            this.error && this.log.info("RPC server recovered!")
-            this.error = false
-        } catch (err: any) {
-            this.error = true
-            this.log.error(err.message)
+        for (const [_, contract] of Array.from(this.contracts.entries())) {
+            contract.balance = new BN(await contract.balanceOf(this.address).call())
         }
     }
 
@@ -189,13 +186,12 @@ export default class EVM {
               PENDING_TX_TIMEOUT,
               `Timeout reached for transaction ${txHash} with nonce ${nonce}`,
             )
-        } catch (err: any) {
-            this.log.error(err.message);
-            this.requestStatus.set(request.requestId, { type: 'error', errorMessage: err.message })
-            return;
-        }
 
-        this.requestStatus.set(request.requestId, { type: 'confirmed', txHash})
+            this.requestStatus.set(request.requestId, { type: 'confirmed', txHash})
+        } catch (err: any) {
+            this.requestStatus.set(request.requestId, { type: 'error', errorMessage: err.message })
+            throw err;
+        }
     }
 
     async getSignedTransaction(
@@ -253,13 +249,15 @@ export default class EVM {
         this.requestStatus.delete(requestId);
         if (transactionStatus.type === "mem-pool") {
             const request = transactionStatus.request;
-            this.processRequest(request).catch((e: any) => this.log.error(e.message));
+            this.processRequest(request)
+              .then(() => this.log.info(`Successfully processed request ${requestId}: ${request.id} to ${request.receiver}`))
+              .catch((e: any) => this.log.error(`Request ${requestId} failed: ${request.id} to ${request.requestId}: ${e.message}`));
         }
     }
 
-    async recalibrate(): Promise<void> {
+    async recalibrate(): Promise<boolean> {
         if (this.isRecalibrating) {
-            return;
+            return false;
         }
 
         const nowTimestamp = Date.now();
@@ -273,7 +271,9 @@ export default class EVM {
             } finally {
                 this.isRecalibrating = false
             }
+            return true;
         }
+        return false;
     }
 
     async addERC20Contract(config: ERC20Type) {
