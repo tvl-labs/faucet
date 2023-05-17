@@ -119,12 +119,18 @@ function prepareRoutes(
     sendTokenHandlers.push(async (req: any, res: any) => {
         const address: string = req.body?.address
         const chain: string = req.body?.chain
-        const erc20: string | undefined = req.body?.erc20
+        let erc20: string | undefined = req.body?.erc20
 
         const evm = evms.get(chain);
         if (!evm) {
             res.status(400).send({ message: "Invalid parameters passed!" })
             return;
+        }
+
+        if (erc20 && !evm.contracts.has(erc20)) {
+            // TODO: Workaround for frontend bug: it sends ERC20 for the native token.
+            //  Needs to be fixed on frontend. Probably the issue is that /getChainConfigs
+            erc20 = undefined;
         }
 
         const { status, message, txHash } = await evm.sendToken(address, erc20);
