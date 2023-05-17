@@ -76,7 +76,7 @@ export default class EVM {
     async start() {
         this.isLegacyTransaction = await this.isLegacyTransactionType()
 
-        setInterval(() => this.recalibrateNonceAndBalance(), 1000);
+        setInterval(() => this.recalibrate(), 1000);
 
         // block requests during restart (to settle any pending txs initiated during shutdown)
         setTimeout(() => {
@@ -121,7 +121,11 @@ export default class EVM {
         const requestId = receiver + id + Math.random().toString()
 
         const request: RequestType = { receiver, amount, id, requestId };
-        this.processRequest(request)
+        if (this.isRecalibrating) {
+            this.waitArr.push(request)
+        } else {
+            this.putInQueue(request)
+        }
 
         return new Promise((resolve) => {
             const statusCheckerInterval = setInterval(async () => {
@@ -145,15 +149,6 @@ export default class EVM {
             }, 300)
         })
     }
-
-    async processRequest(request: RequestType): Promise<void> {
-        if (this.isRecalibrating) {
-            this.waitArr.push(request)
-        } else {
-            this.putInQueue(request)
-        }
-    }
-
     getBalance(id?: string): BN {
         if (id && this.contracts.get(id)) {
             return this.contracts.get(id)!.balance;
@@ -173,11 +168,7 @@ export default class EVM {
 
             this.error && this.log.info("RPC server recovered!")
             this.error = false
-
-            while (this.waitArr.length != 0) {
-                this.putInQueue(this.waitArr.shift()!);
-            }
-        } catch(err: any) {
+        } catch (err: any) {
             this.error = true
             this.log.error(err.message)
         }
@@ -297,7 +288,7 @@ export default class EVM {
         return Math.min(adjustedGas, parseInt(this.config.MAX_FEE))
     }
 
-    async recalibrateNonceAndBalance(): Promise<void> {
+    async recalibrate(): Promise<void> {
         if (this.isRecalibrating) {
             return;
         }
@@ -305,13 +296,20 @@ export default class EVM {
         const nowTimestamp = Date.now();
         const isTimeToRecalibrate = (nowTimestamp - this.lastRecalibrationTimestamp) / 1000 > (this.config.RECALIBRATE || 30);
 
-        if (this.requestStatus.size === 0 && !this.queuingInProgress && isTimeToRecalibrate) {
+        const isIdle = this.requestStatus.size === 0 && !this.queuingInProgress;
+        if (isIdle && isTimeToRecalibrate) {
             this.lastRecalibrationTimestamp = nowTimestamp;
             this.isRecalibrating = true
             try {
                 await this.updateNonceAndBalance()
             } finally {
                 this.isRecalibrating = false
+            }
+        }
+
+        if (isIdle) {
+            while (this.waitArr.length !== 0) {
+                this.putInQueue(this.waitArr.shift()!);
             }
         }
     }
