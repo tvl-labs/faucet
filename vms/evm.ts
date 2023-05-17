@@ -331,7 +331,7 @@ export default class EVM {
         })
     }
 
-    getFaucetUsage(): number {
+    getFaucetUsagePercentage(): number {
         return 100 * (this.requestStatus.size / MEMPOOL_LIMIT)
     }
 }
