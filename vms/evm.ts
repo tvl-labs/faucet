@@ -37,7 +37,7 @@ export default class EVM {
     recalibrate: boolean
     waitingForRecalibration: boolean
     waitArr: RequestType[]
-    queue: any[]
+    queue: (RequestType & { nonce: number})[]
     error: boolean
     log: Log
     contracts: any
@@ -166,10 +166,10 @@ export default class EVM {
 
         // After transaction is being processed, the nonce will be available and txHash can be returned to user
         const waitingForNonce = setInterval(async () => {
-            if (this.hasNonce.get(requestId) != undefined) {
+            const nonce: number | undefined = this.hasNonce.get(requestId)
+            if (nonce != undefined) {
                 clearInterval(waitingForNonce)
 
-                const nonce: number | undefined = this.hasNonce.get(requestId)
                 this.hasNonce.set(requestId, undefined)
 
                 const { txHash } = await this.getTransaction(receiver, amount, nonce, id)
@@ -299,8 +299,8 @@ export default class EVM {
             this.hasNonce.set(req.requestId!, this.nonce)
             this.nonce++
 
-            const { amount, receiver, nonce1, id } = this.queue.shift()
-            this.sendTokenUtil(amount, receiver, nonce1, id)
+            const { amount, receiver, nonce, id } = this.queue.shift()!;
+            this.sendTokenUtil(amount, receiver, nonce, id)
         } else {
             this.queuingInProgress = false
             this.requestCount--
@@ -311,7 +311,7 @@ export default class EVM {
 
     // pops the 1st request in queue, and call the utility function to issue the tx
     async sendTokenUtil(
-        amount: number,
+        amount: BN,
         receiver: string,
         nonce: number,
         id?: string
@@ -351,7 +351,7 @@ export default class EVM {
 
     async getTransaction(
         to: string,
-        value: BN | number,
+        value: BN,
         nonce: number | undefined,
         id?: string
     ): Promise<any> {
