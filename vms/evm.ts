@@ -21,21 +21,7 @@ export default class EVM {
     web3: Web3
     account: Account
     address: string;
-    NAME: string
-    DRIP_AMOUNT: BN
-    DECIMALS: number
-    LEGACY: boolean
-    MAX_PRIORITY_FEE: string
-    MAX_FEE: string
-    RECALIBRATE: number
-    requestStatus: Map<string, TransactionStatus>
-    nonce: number
-    balance: BN
-    isRecalibrating: boolean
-    waitArr: RequestType[]
-    queue: (RequestType & { nonce: number})[]
-    error: boolean
-    log: Log
+    isLegacyTransaction: boolean
     contracts: Map<string, {
         balance: BN;
         balanceOf: (address: string) => any;
@@ -45,27 +31,32 @@ export default class EVM {
         decimals: number,
         gasLimit: string,
     }>
+
+    requestStatus: Map<string, TransactionStatus>
+    nonce: number
+    balance: BN
+    isRecalibrating: boolean
+    waitArr: RequestType[]
+    queue: (RequestType & { nonce: number})[]
+    error: boolean
+    log: Log
+
     requestCount: number
     queuingInProgress: boolean
     isDelayedStart: boolean
-    recalibrateNowActivated: boolean
     lastRecalibrationTimestamp: number;
+    private config: ChainType;
 
     constructor(config: ChainType, PK: string) {
         this.web3 = new Web3(config.RPC)
         this.account = this.web3.eth.accounts.privateKeyToAccount(PK)
         this.address = this.account.address;
         this.contracts = new Map()
+        this.config = config
 
-        this.NAME = config.NAME
-        this.DECIMALS = config.DECIMALS || 18
-        this.DRIP_AMOUNT = calculateBaseUnit(config.DRIP_AMOUNT.toString(), this.DECIMALS)
-        this.MAX_PRIORITY_FEE = config.MAX_PRIORITY_FEE
-        this.MAX_FEE = config.MAX_FEE
-        this.RECALIBRATE = config.RECALIBRATE || 30
-        this.LEGACY = false
+        this.isLegacyTransaction = false
 
-        this.log = new Log(this.NAME)
+        this.log = new Log(this.config.NAME)
 
         this.requestStatus = new Map();
 
@@ -74,7 +65,6 @@ export default class EVM {
 
         this.isRecalibrating = false
         this.queuingInProgress = false
-        this.recalibrateNowActivated = false
         this.lastRecalibrationTimestamp = 0
 
         this.requestCount = 0
@@ -86,7 +76,7 @@ export default class EVM {
     }
 
     async start() {
-        this.LEGACY = await this.isLegacyTransactionType()
+        this.isLegacyTransaction = await this.isLegacyTransactionType()
 
         setInterval(() => this.recalibrateNonceAndBalance(), 1000);
 
@@ -125,7 +115,7 @@ export default class EVM {
         // increasing request count before processing request
         this.requestCount++
 
-        let amount: BN = this.DRIP_AMOUNT
+        let amount: BN = calculateBaseUnit(this.config.DRIP_AMOUNT.toString(), this.config.DECIMALS || 18)
 
         // If id is provided, then it is ERC20 token transfer, so update the amount
         if (id) {
@@ -145,14 +135,14 @@ export default class EVM {
                     this.requestStatus.delete(requestId);
                     switch (requestStatus.type) {
                         case 'pending':
-                            resolve({ status: 200, message: `Transactio sent on ${this.NAME}`, txHash: requestStatus.txHash })
+                            resolve({ status: 200, message: `Transactio sent on ${this.config.NAME}`, txHash: requestStatus.txHash })
                             break;
                         case 'error':
                             const errorMessage = requestStatus?.errorMessage
                             resolve({ status: 400, message: errorMessage})
                             break;
                         case 'confirmed':
-                            resolve({ status: 200, message: `Transaction successful on ${this.NAME}!`, txHash: requestStatus.txHash })
+                            resolve({ status: 200, message: `Transaction successful on ${this.config.NAME}!`, txHash: requestStatus.txHash })
                             break;
                     }
                 }
@@ -278,12 +268,12 @@ export default class EVM {
             gas: "21000",
             nonce,
             to,
-            maxPriorityFeePerGas: this.MAX_PRIORITY_FEE,
-            maxFeePerGas: this.MAX_FEE,
+            maxPriorityFeePerGas: this.config.MAX_PRIORITY_FEE,
+            maxFeePerGas: this.config.MAX_FEE,
             value
         }
 
-        if (this.LEGACY) {
+        if (this.isLegacyTransaction) {
             delete tx["maxPriorityFeePerGas"]
             delete tx["maxFeePerGas"]
             tx.gasPrice = await this.getAdjustedGasPrice()
@@ -310,7 +300,7 @@ export default class EVM {
         try {
             const gasPrice: number = new BN(await this.web3.eth.getGasPrice()).toNumber();
             const adjustedGas: number = Math.floor(gasPrice * 1.25)
-            return Math.min(adjustedGas, parseInt(this.MAX_FEE))
+            return Math.min(adjustedGas, parseInt(this.config.MAX_FEE))
         } catch(err: any) {
             this.error = true
             this.log.error(err.message)
@@ -324,7 +314,7 @@ export default class EVM {
         }
 
         const nowTimestamp = Date.now();
-        const isTimeToRecalibrate = (nowTimestamp - this.lastRecalibrationTimestamp) / 1000 > this.RECALIBRATE;
+        const isTimeToRecalibrate = (nowTimestamp - this.lastRecalibrationTimestamp) / 1000 > (this.config.RECALIBRATE || 30);
 
         if (this.requestStatus.size === 0 && !this.queuingInProgress && isTimeToRecalibrate) {
             this.lastRecalibrationTimestamp = nowTimestamp;
