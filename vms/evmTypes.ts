@@ -1,16 +1,23 @@
 import { BN } from 'avalanche'
 
-export type TransactionStatus = {
+/**
+ * Request statuses:
+ * - mem-pool — just added to the queue
+ * - queueing — transaction is being processed
+ * - sent — transaction has been sent to RPC
+ * - error — transaction failed
+ */
+export type RequestStatus = {
     type: 'mem-pool',
     request: RequestType
 } | {
-    type: 'pending',
-    txHash: string
+    type: 'queueing',
+    request: RequestType
 } | {
     type: 'error',
     errorMessage: string
 } | {
-    type: 'confirmed',
+    type: 'sent',
     txHash: string
 }
 

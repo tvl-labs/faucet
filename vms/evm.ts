@@ -4,7 +4,7 @@ import Web3 from 'web3'
 import { asyncCallWithTimeout, calculateBaseUnit } from './utils'
 import Log from './log'
 import ERC20Interface from './ERC20Interface.json'
-import { RequestType, SendTokenResponse, TransactionStatus } from './evmTypes'
+import { RequestType, SendTokenResponse, RequestStatus } from './evmTypes'
 import { AbiItem } from 'web3-utils';
 import { Account } from 'web3-core';
 import { ChainType, ERC20Type } from '../types';
@@ -36,8 +36,9 @@ export default class EVM {
         decimals: number,
         gasLimit: string,
     }>
-    requestStatus: Map<string, TransactionStatus>
+    requestStatus: Map<string, RequestStatus>
 
+    nextRequestId: number = 0;
     isRecalibrating: boolean
     lastRecalibrationTimestamp: number;
 
@@ -64,24 +65,13 @@ export default class EVM {
     async start() {
         this.isLegacyTransaction = await this.isLegacyTransactionType()
 
-        setInterval(async () => {
-            try {
-                if (await this.recalibrate()) {
-                    const erc20Balances = Array.from(this.contracts.entries())
-                      .map(([, contract]) => `${contract.name} = ${contract.balance}`)
-                      .join(", ");
-                    this.log.info(`Recalibration success for chain ${this.config.NAME}. Native balance ${this.balance}. ERC20 balances: ${erc20Balances}`);
-                }
-            } catch (e: any) {
-                this.log.error(`Recalibration failed: ${e.message}`)
-            }
-        }, 1000);
+        setInterval(() => this.recalibrateAndLog(), 1000);
 
-        setInterval(() => this.schedule(), 1000);
+        setInterval(() => this.scheduleFromMemPool(), 1000);
     }
 
     // Setup Legacy or EIP1559 transaction type
-    async isLegacyTransactionType(): Promise<boolean> {
+    private async isLegacyTransactionType(): Promise<boolean> {
         const baseFee = (await this.web3.eth.getBlock('latest')).baseFeePerGas
         return baseFee === undefined
     }
@@ -108,30 +98,35 @@ export default class EVM {
             amount = calculateBaseUnit(contract.dripAmount.toString(), contract.decimals || 18)
         }
 
-        const requestId = receiver + erc20 + Math.random().toString()
-
+        const requestId = `${++this.nextRequestId}_${erc20 ?? 'native'}_${receiver}`;
         const request: RequestType = { receiver, amount, id: erc20, requestId };
-        this.requestStatus.set(requestId, { type: 'mem-pool', request });
+        this.requestStatus.set(request.requestId, { type: 'mem-pool', request });
+        this.log.info(this.getRequestLogPrefix(request) + ": put to mem-pool");
 
         return new Promise((resolve) => {
             const statusCheckerInterval = setInterval(async () => {
-                const requestStatus = this.requestStatus.get(requestId);
-                if (requestStatus) {
-                    clearInterval(statusCheckerInterval)
-                    this.requestStatus.delete(requestId);
-                    switch (requestStatus.type) {
-                        case 'pending':
-                            resolve({ status: 200, message: `Transaction sent on ${this.config.NAME}`, txHash: requestStatus.txHash })
-                            break;
-                        case 'error':
-                            const errorMessage = requestStatus?.errorMessage
-                            resolve({ status: 400, message: errorMessage})
-                            break;
-                        case 'confirmed':
-                            resolve({ status: 200, message: `Transaction successful on ${this.config.NAME}!`, txHash: requestStatus.txHash })
-                            break;
-                    }
+                const requestStatus = this.requestStatus.get(request.requestId);
+                if (!requestStatus) {
+                    return;
                 }
+                if (requestStatus.type === 'mem-pool' || requestStatus.type === 'queueing') {
+                    // Continue polling the status.
+                    return;
+                }
+                clearInterval(statusCheckerInterval);
+                this.requestStatus.delete(request.requestId);
+                if (requestStatus.type === 'sent') {
+                    resolve({ status: 200, message: `Transaction sent on ${this.config.NAME}!`, txHash: requestStatus.txHash });
+                    this.log.info(this.getRequestLogPrefix(request) + `: respond HTTP 200 txHash = ${requestStatus.txHash}`);
+                    return;
+                }
+                if (requestStatus.type === 'error') {
+                    const errorMessage = `Transaction failed: ${requestStatus?.errorMessage}`;
+                    resolve({ status: 400, message: errorMessage });
+                    this.log.info(this.getRequestLogPrefix(request) + `: respond HTTP 400 error ${errorMessage}`);
+                    return;
+                }
+                throw new Error('Unknown status');
             }, 300)
         })
     }
@@ -143,7 +138,7 @@ export default class EVM {
         }
     }
 
-    async updateNonceAndBalance(): Promise<void> {
+    private async updateNonceAndBalance(): Promise<void> {
         this.nonce = await this.web3.eth.getTransactionCount(this.address, 'latest');
         this.balance = new BN(await this.web3.eth.getBalance(this.address));
 
@@ -152,7 +147,7 @@ export default class EVM {
         }
     }
 
-    isFaucetBalanceEnough(request: RequestType): boolean {
+    private isFaucetBalanceEnough(request: RequestType): boolean {
         if (request.id) {
             const contract = this.contracts.get(request.id)!;
             return contract.balance.gte(request.amount);
@@ -161,7 +156,7 @@ export default class EVM {
         }
     }
 
-    async processRequest(request: RequestType) {
+    private async processRequest(request: RequestType) {
         if (this.isRecalibrating) {
             this.requestStatus.set(request.requestId, { type: 'mem-pool', request })
             return;
@@ -182,7 +177,7 @@ export default class EVM {
         this.nonce++;
 
         const { txHash, rawTransaction } = await this.getSignedTransaction(receiver, amount, nonce, id)
-        this.requestStatus.set(request.requestId, { type: "pending", txHash });
+        this.log.info(this.getRequestLogPrefix(request) + ": has been signed");
 
         try {
             await asyncCallWithTimeout(
@@ -191,20 +186,21 @@ export default class EVM {
               `Timeout reached for transaction ${txHash} with nonce ${nonce}`,
             )
 
-            this.requestStatus.set(request.requestId, { type: 'confirmed', txHash})
+            this.requestStatus.set(request.requestId, { type: 'sent', txHash})
         } catch (err: any) {
             this.requestStatus.set(request.requestId, { type: 'error', errorMessage: err.message })
             throw err;
         }
     }
 
-    async getSignedTransaction(
+    private async getSignedTransaction(
         to: string,
         value: BN,
         nonce: number | undefined,
         id?: string
     ): Promise<{ txHash: string, rawTransaction: string }> {
         const tx: any = {
+            from: this.address,
             type: 2,
             gas: "21000",
             nonce,
@@ -237,29 +233,51 @@ export default class EVM {
         return { txHash, rawTransaction }
     }
 
-    async getLegacyGasPrice(): Promise<number> {
+    private async getLegacyGasPrice(): Promise<number> {
         const gasPrice: number = new BN(await this.web3.eth.getGasPrice()).toNumber();
         const adjustedGas: number = Math.floor(gasPrice * 1.25)
         return Math.min(adjustedGas, parseInt(this.config.MAX_FEE))
     }
 
-    schedule() {
-        const entry = Array.from(this.requestStatus.entries())
+    private scheduleFromMemPool() {
+        const memPoolEntry = Array.from(this.requestStatus.entries())
           .find(([, request]) => request.type === 'mem-pool');
-        if (!entry) {
+        if (!memPoolEntry) {
             return;
         }
-        const [requestId, transactionStatus] = entry;
-        this.requestStatus.delete(requestId);
-        if (transactionStatus.type === "mem-pool") {
-            const request = transactionStatus.request;
-            this.processRequest(request)
-              .then(() => this.log.info(`Successfully processed request ${requestId}: ${request.id} to ${request.receiver}`))
-              .catch((e: any) => this.log.error(`Request ${requestId} failed: ${request.id} to ${request.requestId}: ${e.message}`));
+        const [requestId, status] = memPoolEntry;
+        if (status.type !== "mem-pool") {
+            return;
+        }
+        const request = status.request;
+        this.requestStatus.set(requestId, { type: 'queueing', request });
+        this.processRequest(request)
+          .then(() => {
+              this.log.info(this.getRequestLogPrefix(request) + ": successfully processed")
+              this.recalibrateNextTime();
+              this.recalibrateAndLog().catch(this.log.error);
+          })
+          .catch((e: any) => this.log.error(`Request ${requestId} failed: ${request.id} to ${request.requestId}: ${e.message}`));
+    }
+
+    private recalibrateNextTime() {
+        this.lastRecalibrationTimestamp = 0;
+    }
+
+    private async recalibrateAndLog() {
+        try {
+            if (await this.recalibrate()) {
+                const erc20Balances = Array.from(this.contracts.entries())
+                  .map(([, contract]) => `${contract.name} = ${contract.balance}`)
+                  .join(", ");
+                this.log.info(`Recalibration success for chain ${this.config.NAME}. Native balance ${this.balance}. ERC20 balances: ${erc20Balances}`);
+            }
+        } catch (e: any) {
+            this.log.error(`Recalibration failed: ${e.message}`)
         }
     }
 
-    async recalibrate(): Promise<boolean> {
+    private async recalibrate(): Promise<boolean> {
         if (this.isRecalibrating) {
             return false;
         }
@@ -294,6 +312,10 @@ export default class EVM {
             decimals: config.DECIMALS,
             gasLimit: config.GASLIMIT,
         })
+    }
+
+    private getRequestLogPrefix(request: RequestType): string {
+        return `Request ${request.requestId}: ${request.amount} of ${request.id ?? 'native'} to ${request.receiver}`;
     }
 
     getFaucetUsagePercentage(): number {
