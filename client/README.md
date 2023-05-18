@@ -1,6 +1,6 @@
 # Faucet Server and Client
 
-This repository has both server and client that is required to host a faucet for your EVM subnet. We have used ReactJS client for interacting with the Node.js Faucet Server.
+This repository has both server and client that is required to host a faucet for your EVM chain. We have used ReactJS client for interacting with the Node.js Faucet Server.
 
 ## Requirements
 
