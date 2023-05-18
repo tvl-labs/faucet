@@ -6,8 +6,8 @@ import Log from './log'
 import ERC20Interface from './ERC20Interface.json'
 import { RequestType, SendTokenResponse, RequestStatus } from './evmTypes'
 import { AbiItem } from 'web3-utils';
-import { Account } from 'web3-core';
 import { ChainType, ERC20Type } from '../types';
+import { EvmSigner } from './signer';
 
 // cannot issue tx if no. of pending requests is > 16
 const MEM_POOL_LIMIT = 15
@@ -18,8 +18,8 @@ const PENDING_TX_TIMEOUT = 40 * 1000 // 40 seconds
 export default class EVM {
     private config: ChainType;
 
+    evmSigner: EvmSigner;
     web3: Web3
-    account: Account
     address: string;
     isLegacyTransaction: boolean
     log: Log
@@ -42,10 +42,10 @@ export default class EVM {
     isRecalibrating: boolean
     lastRecalibrationTimestamp: number;
 
-    constructor(config: ChainType, PK: string) {
-        this.web3 = new Web3(config.RPC)
-        this.account = this.web3.eth.accounts.privateKeyToAccount(PK)
-        this.address = this.account.address;
+    constructor(config: ChainType, evmSigner: EvmSigner) {
+        this.evmSigner = evmSigner;
+        this.web3 = evmSigner.web3;
+        this.address = evmSigner.address;
         this.contracts = new Map()
         this.config = config
 
@@ -226,7 +226,7 @@ export default class EVM {
             tx.gas = erc20.gasLimit.toString();
         }
 
-        const signedTx = await this.account.signTransaction(tx);
+        const signedTx = await this.evmSigner.signTransaction(tx);
         const txHash = signedTx.transactionHash!;
         const rawTransaction = signedTx.rawTransaction!;
 
