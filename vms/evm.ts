@@ -1,13 +1,15 @@
 import { BN } from 'avalanche'
 import Web3 from 'web3'
 
-import { asyncCallWithTimeout, calculateBaseUnit } from './utils'
+import { asyncCallWithTimeout } from './async-utils'
 import Log from './log'
 import ERC20Interface from './ERC20Interface.json'
 import { RequestType, SendTokenResponse, RequestStatus } from './evmTypes'
 import { AbiItem } from 'web3-utils';
 import { ChainType, ERC20Type } from '../types';
 import { EvmSigner } from './signer';
+import { balanceGauge, nonceGauge, requestsInProgressGauge, requestsProcessedCounter } from './metrics';
+import { calculateBaseUnit, calculatePresentableUnit } from './value-utils';
 
 // cannot issue tx if no. of pending requests is > 16
 const MEM_POOL_LIMIT = 15
@@ -27,6 +29,7 @@ export default class EVM {
     nonce: number
     balance: BN
     contracts: Map<string, {
+        id: string;
         name: string;
         balance: BN;
         balanceOf: (address: string) => any;
@@ -102,6 +105,7 @@ export default class EVM {
         const request: RequestType = { receiver, amount, id: erc20, requestId };
         this.requestStatus.set(request.requestId, { type: 'mem-pool', request });
         this.log.info("Request has been added to mem-pool", { request });
+        this.updatePrometheusMetrics();
 
         return new Promise((resolve) => {
             const statusCheckerInterval = setInterval(async () => {
@@ -115,6 +119,12 @@ export default class EVM {
                 }
                 clearInterval(statusCheckerInterval);
                 this.requestStatus.delete(request.requestId);
+                requestsProcessedCounter
+                  .labels({
+                      chain: this.config.ID,
+                      status: requestStatus.type
+                  })
+                  .inc();
                 if (requestStatus.type === 'sent') {
                     resolve({ status: 200, message: `Transaction sent on ${this.config.NAME}!`, txHash: requestStatus.txHash });
                     this.log.info("Respond HTTP 200", { request, txHash: requestStatus.txHash });
@@ -144,6 +154,42 @@ export default class EVM {
 
         for (const [_, contract] of Array.from(this.contracts.entries())) {
             contract.balance = new BN(await contract.balanceOf(this.address).call())
+        }
+    }
+
+    private updatePrometheusMetrics() {
+        requestsInProgressGauge
+          .labels({
+              chain: this.config.ID
+          })
+          .set(this.requestStatus.size);
+
+        nonceGauge
+          .labels({
+              chain: this.config.ID
+          })
+          .set(this.nonce);
+
+        balanceGauge
+          .labels({
+              chain: this.config.ID,
+              token_id: 'native',
+              token_name: 'native',
+              token_address: 'native',
+              faucet_address: this.address
+          })
+          .set(calculatePresentableUnit(this.balance, this.config.DECIMALS));
+
+        for (const [_, contract] of Array.from(this.contracts.entries())) {
+            balanceGauge
+              .labels({
+                  chain: this.config.ID,
+                  token_id: contract.id,
+                  token_name: contract.name,
+                  token_address: contract.address,
+                  faucet_address: this.address
+              })
+              .set(calculatePresentableUnit(contract.balance, contract.decimals));
         }
     }
 
@@ -246,27 +292,28 @@ export default class EVM {
         this.processRequest(request)
           .then(() => {
               this.log.info("Request has been processed", { request })
-              this.recalibrateNextTime();
-              this.recalibrateAndLog().catch(this.log.error);
+              this.recalibrateAndLog(true).catch(this.log.error);
           })
           .catch((e: any) => this.log.error(`Request ${requestId} failed: ${request.id} to ${request.requestId}: ${e.message}`));
     }
 
-    private recalibrateNextTime() {
-        this.lastRecalibrationTimestamp = 0;
-    }
-
-    private async recalibrateAndLog() {
+    private async recalibrateAndLog(force?: boolean) {
         try {
+            if (force) {
+                this.lastRecalibrationTimestamp = 0;
+            }
             if (await this.recalibrate()) {
                 this.log.info(
                   `Recalibration success for chain ${this.config.NAME}`,
                   {
-                      "native_balance": this.balance,
+                      "native_balance": calculatePresentableUnit(this.balance, this.config.DECIMALS),
                       "erc20_balances": [
                         Array.from(this.contracts.entries())
                           .map(([, contract]) =>
-                            ({ erc20: contract.name, balance: contract.balance })
+                            ({
+                                erc20: contract.name,
+                                balance: calculatePresentableUnit(contract.balance, contract.decimals)
+                            })
                           )
                       ]
                   }
@@ -290,6 +337,7 @@ export default class EVM {
             this.isRecalibrating = true
             try {
                 await this.updateNonceAndBalance()
+                this.updatePrometheusMetrics()
             } finally {
                 this.isRecalibrating = false
             }
@@ -303,6 +351,7 @@ export default class EVM {
         const abiItem = ERC20Interface as AbiItem[];
         const contract = new this.web3.eth.Contract(abiItem, config.CONTRACTADDRESS);
         this.contracts.set(config.ID, {
+            id: config.ID,
             name: config.NAME,
             transfer: contract.methods.transfer,
             balanceOf: contract.methods.balanceOf,

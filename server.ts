@@ -12,6 +12,7 @@ import * as fs from 'fs';
 import { PkSigner } from './vms/pk-signer';
 import { EvmSigner } from './vms/signer';
 import { KmsEvmSigner } from './vms/kms-signer';
+import { prometheusRegistry } from './vms/metrics';
 
 dotenv.config()
 
@@ -188,6 +189,11 @@ function prepareRoutes(
             usage
         })
     })
+
+    app.get('/metrics', async (req: any, res: any) => {
+        res.set('Content-Type', prometheusRegistry.contentType);
+        res.end(await prometheusRegistry.metrics());
+    });
 
     app.use('/api', router)
 
