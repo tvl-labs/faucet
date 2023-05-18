@@ -1,6 +1,7 @@
 import { EvmSigner } from './signer';
 import Web3 from 'web3';
 import { Account, SignedTransaction, TransactionConfig } from 'web3-core';
+import { ChainType } from '../types';
 
 export class PkSigner implements EvmSigner {
   constructor(
@@ -10,17 +11,20 @@ export class PkSigner implements EvmSigner {
   ) {
   }
 
-  static create(rpcUrl: string, privateKey: string) {
-    const web3 = new Web3(rpcUrl);
+  static create(config: ChainType, privateKey: string): PkSigner {
+    const web3 = new Web3(config.RPC);
     const account = web3.eth.accounts.privateKeyToAccount(privateKey)
     const address = account.address;
     return new PkSigner(web3, account, address);
   }
 
-  signTransaction(
-    transactionConfig: TransactionConfig,
-    callback: ((signTransaction: SignedTransaction) => void) | undefined
-  ): Promise<SignedTransaction> {
-    return this.account.signTransaction(transactionConfig, callback);
+  async signTransaction(transactionConfig: TransactionConfig): Promise<{
+    txHash: string,
+    rawTransaction: string
+  }> {
+    const signedTransaction = await this.account.signTransaction(transactionConfig);
+    const txHash = signedTransaction.transactionHash!;
+    const rawTransaction = signedTransaction.rawTransaction!;
+    return { txHash, rawTransaction };
   }
 }

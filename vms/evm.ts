@@ -226,10 +226,7 @@ export default class EVM {
             tx.gas = erc20.gasLimit.toString();
         }
 
-        const signedTx = await this.evmSigner.signTransaction(tx);
-        const txHash = signedTx.transactionHash!;
-        const rawTransaction = signedTx.rawTransaction!;
-
+        const { txHash, rawTransaction } = await this.evmSigner.signTransaction(tx);
         return { txHash, rawTransaction }
     }
 

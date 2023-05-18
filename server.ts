@@ -10,6 +10,8 @@ import { ChainType, ConfigFileType, ERC20Type } from './types'
 
 import * as fs from 'fs';
 import { PkSigner } from './vms/pk-signer';
+import { EvmSigner } from './vms/signer';
+import { KmsEvmSigner } from './vms/kms-signer';
 
 dotenv.config()
 
@@ -80,16 +82,21 @@ function configureApp(configFile: ConfigFileType): { app: Express, router: Route
     return { app, router };
 }
 
-async function configureEvms(configFile: ConfigFileType): Promise<Map<string, EVM>> {
-    const evms = new Map<string, EVM>()
+async function configureEvmMap(configFile: ConfigFileType): Promise<Map<string, EVM>> {
+    const evmMap = new Map<string, EVM>()
 
     // Setting up instance for EVM chains
     for (const chain of configFile.evmchains) {
-        const pk = (process.env[chain.ID] || process.env.PK)!;
-        const pkSigner = PkSigner.create(chain.RPC, pk);
-        const evm = new EVM(chain, pkSigner);
+        const pk = (process.env[chain.ID] || process.env.PK);
+        let evmSigner: EvmSigner;
+        if (pk) {
+            evmSigner = await PkSigner.create(chain, pk);
+        } else {
+            evmSigner = await KmsEvmSigner.create(chain);
+        }
+        const evm = new EVM(chain, evmSigner);
         await evm.start();
-        evms.set(chain.ID, evm);
+        evmMap.set(chain.ID, evm);
     }
 
     // Adding ERC20 token contracts to their HOST evm instances
@@ -97,17 +104,17 @@ async function configureEvms(configFile: ConfigFileType): Promise<Map<string, EV
         const chain = getChainByID(configFile.evmchains, token.HOSTID)!;
         token = populateConfig(token, chain);
         configFile.erc20tokens[i] = token;
-        const evm = evms.get(chain.ID)!
+        const evm = evmMap.get(chain.ID)!
         evm.addERC20Contract(token)
     })
 
-    return evms;
+    return evmMap;
 }
 
 function prepareRoutes(
   app: Express,
   router: Router,
-  evms: Map<string, EVM>,
+  evmMap: Map<string, EVM>,
   configFile: ConfigFileType
 ) {
     // POST request for sending tokens or coins
@@ -123,7 +130,7 @@ function prepareRoutes(
         const chain: string = req.body?.chain
         let erc20: string | undefined = req.body?.erc20
 
-        const evm = evms.get(chain);
+        const evm = evmMap.get(chain);
         if (!evm) {
             res.status(400).send({ message: "Invalid parameters passed!" })
             return;
@@ -149,7 +156,7 @@ function prepareRoutes(
     // GET request for fetching faucet address for the specified chain
     router.get('/faucetAddress', async (req: any, res: any) => {
         const chain: string = req.query?.chain
-        const evm = evms.get(chain);
+        const evm = evmMap.get(chain);
         const address = evm?.address;
         res.send({ address })
     })
@@ -158,7 +165,7 @@ function prepareRoutes(
     router.get('/getBalance', (req: any, res: any) => {
         const chain: string = req.query?.chain
         const id: string | undefined = req.query?.erc20
-        const evm = evms.get(chain);
+        const evm = evmMap.get(chain);
         if (!evm) {
             res.status(400).send({ message: `No chain found ${chain}!` })
             return;
@@ -173,7 +180,7 @@ function prepareRoutes(
     router.get('/faucetUsage', (req: any, res: any) => {
         const chain: string = req.query?.chain
 
-        const evm = evms.get(chain)!
+        const evm = evmMap.get(chain)!
 
         const usage: number = evm?.getFaucetUsagePercentage()
 
@@ -202,8 +209,8 @@ function prepareRoutes(
 async function main() {
     const configFile = readConfigFile();
     const { app, router } = configureApp(configFile);
-    const evms = await configureEvms(configFile);
-    prepareRoutes(app, router, evms, configFile);
+    const evmMap = await configureEvmMap(configFile);
+    prepareRoutes(app, router, evmMap, configFile);
     app.listen(process.env.PORT || 8000, () => {
         console.log(`Server started at port ${process.env.PORT || 8000}`)
     })
