@@ -9,6 +9,7 @@ import EVM from './vms/evm'
 import { ChainType, ConfigFileType, ERC20Type } from './types'
 
 import * as fs from 'fs';
+import { PkSigner } from './vms/pk-signer';
 
 dotenv.config()
 
@@ -85,7 +86,8 @@ async function configureEvms(configFile: ConfigFileType): Promise<Map<string, EV
     // Setting up instance for EVM chains
     for (const chain of configFile.evmchains) {
         const pk = (process.env[chain.ID] || process.env.PK)!;
-        const evm = new EVM(chain, pk);
+        const pkSigner = PkSigner.create(chain.RPC, pk);
+        const evm = new EVM(chain, pkSigner);
         await evm.start();
         evms.set(chain.ID, evm);
     }
