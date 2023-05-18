@@ -17,6 +17,9 @@ const MEM_POOL_LIMIT = 15
 // pending tx timeout should be a function of MEM_POOL_LIMIT
 const PENDING_TX_TIMEOUT = 40 * 1000 // 40 seconds
 
+// global sequential request ID .
+let globalRequestId: number = 0;
+
 export default class EVM {
     private config: ChainType;
 
@@ -41,7 +44,6 @@ export default class EVM {
     }>
     requestStatus: Map<string, RequestStatus>
 
-    nextRequestId: number = 0;
     isRecalibrating: boolean
     lastRecalibrationTimestamp: number;
 
@@ -101,7 +103,7 @@ export default class EVM {
             amount = calculateBaseUnit(contract.dripAmount.toString(), contract.decimals || 18)
         }
 
-        const requestId = `${++this.nextRequestId}_${erc20 ?? 'native'}_${receiver}`;
+        const requestId = `${++globalRequestId}`;
         const request: RequestType = { receiver, amount, id: erc20, requestId };
         this.requestStatus.set(request.requestId, { type: 'mem-pool', request });
         this.log.info("Request has been added to mem-pool", { request });
