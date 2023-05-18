@@ -1,6 +1,6 @@
 import { EvmSigner } from './signer';
 import Web3 from 'web3';
-import { Account, SignedTransaction, TransactionConfig } from 'web3-core';
+import { Account, TransactionConfig } from 'web3-core';
 import { ChainType } from '../types';
 
 export class PkSigner implements EvmSigner {

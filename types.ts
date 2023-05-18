@@ -31,7 +31,7 @@ export type ChainType = {
     CHAINID: number,
     EXPLORER: string,
     IMAGE: string,
-    DECIMALS?: number,
+    DECIMALS: number,
     MAX_PRIORITY_FEE: string,
     MAX_FEE: string,
     DRIP_AMOUNT: number,
