@@ -19,7 +19,7 @@ export class KmsEvmSigner implements EvmSigner {
     const provider = new KmsProvider(config.RPC, { keyIds: [kmsKeyId], region: awsRegion });
     const addresses = await provider.getAccounts();
     const address = addresses[0];
-    console.log(`Creating Web3 KMS provider with address ${address}`);
+    console.log(`Creating Web3 KMS provider with address ${address} for chain ${config.NAME}`);
     const web3 = new Web3(provider);
     return new KmsEvmSigner(web3, address);
   }

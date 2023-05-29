@@ -322,7 +322,7 @@ export default class EVM {
                 );
             }
         } catch (e: any) {
-            this.log.error(`Recalibration failed: ${e.message}`)
+            this.log.error(`Recalibration failed for chain ${this.config.NAME}: ${e.message}`)
         }
     }
 
