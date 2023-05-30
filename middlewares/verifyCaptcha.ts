@@ -1,4 +1,4 @@
-const axios = require('axios')
+import axios from 'axios';
 
 export class VerifyCaptcha {
     secret: string
@@ -29,7 +29,7 @@ export class VerifyCaptcha {
             }
 
             const data = response?.data
-            
+
             if(data?.success) {
                 return true
             }
@@ -47,7 +47,7 @@ export class VerifyCaptcha {
         } catch(err: any){
             console.log("Recaptcha V3 error:", err?.message)
         }
-        
+
         const data = response?.data
 
         if(data?.success) {
