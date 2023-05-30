@@ -1,6 +1,7 @@
 import rateLimit, { RateLimitRequestHandler } from 'express-rate-limit'
 import { searchIP } from 'range_check'
-import { RateLimiterConfig } from '../types'
+
+import { RateLimiterConfig } from './rateLimiterConfig';
 
 export class RateLimiter {
     PATH: string
@@ -9,15 +10,15 @@ export class RateLimiter {
         this.PATH = configs[0].RATELIMIT.PATH || '/api/sendToken'
 
         let rateLimiters: any = new Map()
-        configs.forEach((config: any) => {
+        configs.forEach((config: RateLimiterConfig) => {
             const { RATELIMIT } = config
 
-            let RL_CONFIG = {
+            const RL_CONFIG = {
                 MAX_LIMIT: RATELIMIT.MAX_LIMIT,
                 WINDOW_SIZE: RATELIMIT.WINDOW_SIZE,
                 SKIP_FAILED_REQUESTS: RATELIMIT.SKIP_FAILED_REQUESTS || true,
             }
-            
+
             rateLimiters.set(config.ID, this.getLimiter(RL_CONFIG, keyGenerator))
         })
 
@@ -35,7 +36,7 @@ export class RateLimiter {
     }
 
     getLimiter(config: any, keyGenerator?: any): RateLimitRequestHandler {
-        const limiter = rateLimit({
+        return rateLimit({
             windowMs: config.WINDOW_SIZE * 60 * 1000,
             max: config.MAX_LIMIT,
             standardHeaders: true,
@@ -44,15 +45,13 @@ export class RateLimiter {
             message: {
                 message: `Too many requests. Please try again after ${config.WINDOW_SIZE} minutes`
             },
-            keyGenerator: keyGenerator ? keyGenerator : (req, res) => {
+            keyGenerator: keyGenerator ? keyGenerator : (req, _) => {
                 const ip = this.getIP(req)
-                if(ip != null) {
+                if (ip != null) {
                     return ip
                 }
             }
         })
-
-        return limiter
     }
 
     getIP(req: any) {

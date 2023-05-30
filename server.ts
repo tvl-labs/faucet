@@ -6,7 +6,7 @@ import dotenv from 'dotenv'
 import { parseBody, parseURI, RateLimiter, VerifyCaptcha } from './middlewares'
 import EVM from './vms/evm'
 
-import { ChainType, ConfigFileType, ERC20Type } from './types'
+import { ChainType, ConfigFileType, ERC20Type } from './vms/config-types'
 
 import * as fs from 'fs';
 import { PkSigner } from './vms/pk-signer';
