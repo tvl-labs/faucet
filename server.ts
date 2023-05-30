@@ -203,7 +203,8 @@ function prepareRoutes(
 
     app.get('/ip', (req: any, res: any) => {
         res.status(200).send({
-            ip: req.headers["cf-connecting-ip"] || req.ip
+            ip: req.headers["cf-connecting-ip"] || req.ip,
+            headers: req.headers
         })
     })
 
