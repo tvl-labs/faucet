@@ -1,27 +1,4 @@
-import EVM from './vms/evm'
-
-export type SendTokenResponse = {
-    status: number,
-    message: string,
-    txHash?: string
-}
-
-export type RateLimiterConfig = {
-    [key: string]: any,
-    RATELIMIT: {
-        REVERSE_PROXIES?: number,
-        MAX_LIMIT: number,
-        WINDOW_SIZE: number,
-        PATH?: string,
-        SKIP_FAILED_REQUESTS?: boolean,
-        [key: string]: any
-    }
-}
-
-export type EVMInstanceAndConfig = {
-    config: ChainType,
-    instance: EVM
-}
+import { RateLimiterConfig } from '../middlewares/rateLimiterConfig';
 
 export type ChainType = {
     ID: string,
@@ -68,3 +45,4 @@ export type ConfigFileType = {
     evmchains: ChainType[],
     erc20tokens: ERC20Type[]
 }
+

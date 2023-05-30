@@ -4,12 +4,12 @@ import Web3 from 'web3'
 import { asyncCallWithTimeout } from './async-utils'
 import Log from './log'
 import ERC20Interface from './ERC20Interface.json'
-import { RequestType, SendTokenResponse, RequestStatus } from './evmTypes'
 import { AbiItem } from 'web3-utils';
-import { ChainType, ERC20Type } from '../types';
+import { ChainType, ERC20Type } from './config-types';
 import { EvmSigner } from './signer';
 import { balanceGauge, nonceGauge, requestsInProgressGauge, requestsProcessedCounter } from './metrics';
 import { calculateBaseUnit, calculatePresentableUnit } from './value-utils';
+import { RequestStatus, RequestType, SendTokenResponse } from './request-types';
 
 // cannot issue tx if no. of pending requests is > 16
 const MEM_POOL_LIMIT = 15

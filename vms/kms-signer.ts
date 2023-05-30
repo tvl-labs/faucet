@@ -1,4 +1,4 @@
-import { ChainType } from '../types';
+import { ChainType } from './config-types';
 import { KmsProvider } from 'aws-kms-provider';
 import Web3 from 'web3';
 import { EvmSigner } from './signer';
