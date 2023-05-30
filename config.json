@@ -36,7 +36,7 @@
             "NAME": "USDC",
             "TOKEN": "USDC",
             "IMAGE": "https://cryptologos.cc/logos/usd-coin-usdc-logo.png",
-            "CONTRACTADDRESS": "0x786a6e6E01620Db1ce14f96ABF757708E6b5F039",
+            "CONTRACTADDRESS": "0x47e4F578Baa6A63891Ee5Ba2D08fcf0c5b8d8307",
             "DRIP_AMOUNT": 1000,
             "GASLIMIT": "100000",
             "DECIMALS": 6,
