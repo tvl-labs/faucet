@@ -1,7 +1,7 @@
 import rateLimit, { RateLimitRequestHandler } from 'express-rate-limit'
-import { searchIP } from 'range_check'
 
 import { RateLimiterConfig } from './rateLimiterConfig';
+import { getRequestIp } from './ip-utils';
 
 export class RateLimiter {
     PATH: string
@@ -45,17 +45,7 @@ export class RateLimiter {
             message: {
                 message: `Too many requests. Please try again after ${config.WINDOW_SIZE} minutes`
             },
-            keyGenerator: keyGenerator ? keyGenerator : (req, _) => {
-                const ip = this.getIP(req)
-                if (ip != null) {
-                    return ip
-                }
-            }
+            keyGenerator: keyGenerator ? keyGenerator : (req, _) => getRequestIp(req)
         })
-    }
-
-    getIP(req: any) {
-        const ip = req.headers['cf-connecting-ip'] || req.ip
-        return searchIP(ip)
     }
 }

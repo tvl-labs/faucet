@@ -13,6 +13,7 @@ import { PkSigner } from './vms/pk-signer';
 import { EvmSigner } from './vms/signer';
 import { KmsEvmSigner } from './vms/kms-signer';
 import { prometheusRegistry } from './vms/metrics';
+import { getRequestIp } from './middlewares/ip-utils';
 
 dotenv.config()
 
@@ -203,7 +204,7 @@ function prepareRoutes(
 
     app.get('/ip', (req: any, res: any) => {
         res.status(200).send({
-            ip: req.headers["cf-connecting-ip"] || req.ip,
+            ip: getRequestIp(req),
             headers: req.headers
         })
     })
