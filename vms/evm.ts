@@ -70,7 +70,7 @@ export default class EVM {
     async start() {
         this.isLegacyTransaction = await this.isLegacyTransactionType()
 
-        setInterval(() => this.recalibrateAndLog(), 1000);
+        setInterval(() => this.recalibrate(), 1000);
 
         setInterval(() => this.scheduleFromMemPool(), 1000);
     }
@@ -152,10 +152,30 @@ export default class EVM {
 
     private async updateNonceAndBalance(): Promise<void> {
         this.nonce = await this.web3.eth.getTransactionCount(this.address, 'latest');
-        this.balance = new BN(await this.web3.eth.getBalance(this.address));
+        try {
+            this.balance = new BN(await this.web3.eth.getBalance(this.address));
+            this.log.info(
+              `Recalibration success for chain ${this.config.NAME} native token`,
+              {
+                  "native_balance": calculatePresentableUnit(this.balance, this.config.DECIMALS),
+              }
+            )
+        } catch (e: any) {
+            this.log.error(`Recalibration failed for chain ${this.config.NAME} native balance: ${e.message}`);
+        }
 
         for (const [_, contract] of Array.from(this.contracts.entries())) {
-            contract.balance = new BN(await contract.balanceOf(this.address).call())
+            try {
+                contract.balance = new BN(await contract.balanceOf(this.address).call())
+                this.log.info(
+                  `Recalibration success for chain ${this.config.NAME} token ${contract.id} (${contract.address})`,
+                  {
+                      "erc20_balance": calculatePresentableUnit(contract.balance, contract.decimals),
+                  }
+                )
+            } catch (e: any) {
+                this.log.error(`Recalibration failed for chain ${this.config.NAME} token ${contract.id} (${contract.address}): ${e.message}`);
+            }
         }
     }
 
@@ -294,41 +314,17 @@ export default class EVM {
         this.processRequest(request)
           .then(() => {
               this.log.info("Request has been processed", { request })
-              this.recalibrateAndLog(true).catch(this.log.error);
+              this.recalibrate(true).catch(this.log.error);
           })
           .catch((e: any) => this.log.error(`Request ${requestId} failed: ${request.id} to ${request.requestId}: ${e.message}`));
     }
 
-    private async recalibrateAndLog(force?: boolean) {
-        try {
-            if (force) {
-                this.lastRecalibrationTimestamp = 0;
-            }
-            if (await this.recalibrate()) {
-                this.log.info(
-                  `Recalibration success for chain ${this.config.NAME}`,
-                  {
-                      "native_balance": calculatePresentableUnit(this.balance, this.config.DECIMALS),
-                      "erc20_balances": [
-                        Array.from(this.contracts.entries())
-                          .map(([, contract]) =>
-                            ({
-                                erc20: contract.name,
-                                balance: calculatePresentableUnit(contract.balance, contract.decimals)
-                            })
-                          )
-                      ]
-                  }
-                );
-            }
-        } catch (e: any) {
-            this.log.error(`Recalibration failed for chain ${this.config.NAME}: ${e.message}`)
-        }
-    }
-
-    private async recalibrate(): Promise<boolean> {
+    private async recalibrate(force?: boolean): Promise<boolean> {
         if (this.isRecalibrating) {
             return false;
+        }
+        if (force) {
+            this.lastRecalibrationTimestamp = 0;
         }
 
         const nowTimestamp = Date.now();
