@@ -1,4 +1,4 @@
-import { BN } from 'avalanche'
+import BN from 'bn.js'
 import Web3 from 'web3'
 
 import { asyncCallWithTimeout } from './async-utils'

@@ -16,7 +16,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "avalanche": "^3.13.3",
+    "axios": "0.27.2",
     "aws-kms-provider": "^0.9.0",
     "cors": "^2.8.5",
     "dotenv": "^16.0.0",

@@ -1,4 +1,4 @@
-import { BN } from 'avalanche';
+import BN from "bn.js";
 
 export function calculateBaseUnit(amount: string, decimals: number): BN {
   for (let i = 0; i < decimals; i++) {
