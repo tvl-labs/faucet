@@ -7,7 +7,7 @@ import ERC20Interface from './ERC20Interface.json'
 import { AbiItem } from 'web3-utils';
 import { ChainType, ERC20Type } from './config-types';
 import { EvmSigner } from './signer';
-import { balanceGauge, nonceGauge, requestsInProgressGauge, requestsProcessedCounter } from './metrics';
+import { balanceGauge, requestsInProgressGauge, requestsProcessedCounter } from './metrics';
 import { calculateBaseUnit, calculatePresentableUnit } from './value-utils';
 import { RequestStatus, RequestType, SendTokenResponse } from './request-types';
 
@@ -29,7 +29,6 @@ export default class EVM {
     isLegacyTransaction: boolean
     log: Log
 
-    nonce: number
     balance: BN
     contracts: Map<string, {
         id: string;
@@ -60,7 +59,6 @@ export default class EVM {
 
         this.requestStatus = new Map();
 
-        this.nonce = -1
         this.balance = new BN(0)
 
         this.isRecalibrating = false
@@ -150,8 +148,7 @@ export default class EVM {
         }
     }
 
-    private async updateNonceAndBalance(): Promise<void> {
-        this.nonce = await this.web3.eth.getTransactionCount(this.address, 'latest');
+    private async updateBalances(): Promise<void> {
         try {
             this.balance = new BN(await this.web3.eth.getBalance(this.address));
             this.log.info(
@@ -185,12 +182,6 @@ export default class EVM {
               chain: this.config.ID
           })
           .set(this.requestStatus.size);
-
-        nonceGauge
-          .labels({
-              chain: this.config.ID
-          })
-          .set(this.nonce);
 
         balanceGauge
           .labels({
@@ -257,8 +248,7 @@ export default class EVM {
     }
 
     private async getSignedTransaction(request: RequestType): Promise<{ txHash: string, rawTransaction: string }> {
-        const nonce = this.nonce;
-        this.nonce++;
+        const nonce = await this.web3.eth.getTransactionCount(this.address, 'latest');
 
         const { amount: value, receiver: to, id } = request;
 
@@ -334,7 +324,7 @@ export default class EVM {
             this.lastRecalibrationTimestamp = nowTimestamp;
             this.isRecalibrating = true
             try {
-                await this.updateNonceAndBalance()
+                await this.updateBalances()
                 this.updatePrometheusMetrics()
             } finally {
                 this.isRecalibrating = false

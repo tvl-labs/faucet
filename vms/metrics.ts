@@ -21,15 +21,6 @@ export const requestsProcessedCounter = new Counter({
   ],
 });
 
-export const nonceGauge = new Gauge({
-  name: 'faucet_wallet_nonce',
-  help: 'Nonce number of the faucet wallet used to order transactions',
-  registers: [prometheusRegistry],
-  labelNames: [
-    'chain'
-  ],
-});
-
 export const balanceGauge = new Gauge({
   name: 'faucet_wallet_balance',
   help: 'Current balance of the faucet wallet: amount of ERC20 (token_name/token_address) or native tokens (token_name/token_address = "native")',
