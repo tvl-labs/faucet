@@ -46,7 +46,7 @@ export default class EVM {
     isRecalibrating: boolean
     lastRecalibrationTimestamp: number;
 
-    constructor(config: ChainType, evmSigner: EvmSigner) {
+    constructor(config: ChainType, evmSigner: EvmSigner, log: Log) {
         this.evmSigner = evmSigner;
         this.web3 = evmSigner.web3;
         this.address = evmSigner.address;
@@ -55,7 +55,7 @@ export default class EVM {
 
         this.isLegacyTransaction = false
 
-        this.log = new Log(this.config.NAME)
+        this.log = log;
 
         this.requestStatus = new Map();
 

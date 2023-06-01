@@ -4,6 +4,7 @@ import Web3 from 'web3';
 import { EvmSigner } from './signer';
 import { TransactionConfig } from 'web3-core';
 import { keccak256 } from 'web3-utils';
+import Log from './log';
 
 export class KmsEvmSigner implements EvmSigner {
 
@@ -13,10 +14,13 @@ export class KmsEvmSigner implements EvmSigner {
   ) {
   }
 
-  static async create(config: ChainType): Promise<KmsEvmSigner> {
+  static async create(config: ChainType, log: Log): Promise<KmsEvmSigner> {
     const awsRegion = process.env["AWS_REGION"]!;
     const kmsKeyId = process.env[`AWS_KMS_KEY_${config.ID}`]!;
     const provider = new KmsProvider(config.RPC, { keyIds: [kmsKeyId], region: awsRegion });
+    // Workaround for https://github.com/odanado/cloud-cryptographic-wallet/issues/845
+    const engine = (provider as any).engine;
+    engine.on('error', (e?: any) => log.error(`An error occurred in HTTP provider: ${e}`));
     const addresses = await provider.getAccounts();
     const address = addresses[0];
     console.log(`Creating Web3 KMS provider with address ${address} for chain ${config.NAME}`);

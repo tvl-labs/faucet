@@ -14,6 +14,7 @@ import { EvmSigner } from './vms/signer';
 import { KmsEvmSigner } from './vms/kms-signer';
 import { prometheusRegistry } from './vms/metrics';
 import { getRequestIp } from './middlewares/ip-utils';
+import Log from './vms/log';
 
 dotenv.config()
 
@@ -90,13 +91,14 @@ async function configureEvmMap(configFile: ConfigFileType): Promise<Map<string, 
     // Setting up instance for EVM chains
     for (const chain of configFile.evmchains) {
         const pk = (process.env[chain.ID] || process.env.PK);
+        const log = new Log(chain.NAME);
         let evmSigner: EvmSigner;
         if (pk) {
             evmSigner = await PkSigner.create(chain, pk);
         } else {
-            evmSigner = await KmsEvmSigner.create(chain);
+            evmSigner = await KmsEvmSigner.create(chain, log);
         }
-        const evm = new EVM(chain, evmSigner);
+        const evm = new EVM(chain, evmSigner, log);
         await evm.start();
         evmMap.set(chain.ID, evm);
     }
