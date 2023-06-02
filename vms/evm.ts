@@ -350,8 +350,4 @@ export default class EVM {
             gasLimit: config.GASLIMIT,
         })
     }
-
-    getFaucetUsagePercentage(): number {
-        return 100 * (this.requestStatus.size / MEM_POOL_LIMIT)
-    }
 }

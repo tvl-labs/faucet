@@ -181,18 +181,6 @@ function prepareRoutes(
         })
     })
 
-    router.get('/faucetUsage', (req: any, res: any) => {
-        const chain: string = req.query?.chain
-
-        const evm = evmMap.get(chain)!
-
-        const usage: number = evm?.getFaucetUsagePercentage()
-
-        res.status(200).send({
-            usage
-        })
-    })
-
     app.get('/metrics', async (req: any, res: any) => {
         res.set('Content-Type', prometheusRegistry.contentType);
         res.end(await prometheusRegistry.metrics());
