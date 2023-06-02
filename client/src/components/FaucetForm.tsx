@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { ethers } from 'ethers'
 import { ClipLoader } from "react-spinners"
 import Select from 'react-select'
@@ -58,7 +58,7 @@ const FaucetForm = (props: any) => {
                 return
             }
         }
-        
+
         setShouldAllowSend(false)
     }, [address, balance])
 
@@ -67,57 +67,47 @@ const FaucetForm = (props: any) => {
     }, [chain, chainConfigs])
 
     useEffect(() => {
-        let newOptions: DropdownOption[] = []
-        
+        const chainOptions: DropdownOption[] = [];
+
         chainConfigs?.forEach((chain: any, i: number) => {
-            let item = <div className='select-dropdown'>
-                <img alt = { chain.NAME[0] } src = { chain.IMAGE } />
-                { chain.NAME }
-
-                {
-                    chain.CONTRACTADDRESS &&
-                    <span style={{color: 'rgb(180, 180, 183)', fontSize: "10px", marginLeft: "5px"}}>
-                        {
-                            chainConfigs[chainToIndex(chain.HOSTID) || 0]?.NAME
-                        }
-                    </span>
-                }
-            </div>
-
-            if(!chain.CONTRACTADDRESS) {
-                newOptions.push({
+            if (!chain.CONTRACTADDRESS) {
+                const item = <div className='select-dropdown'>
+                    <img alt = { chain.NAME[0] } src = { chain.IMAGE } />
+                    { chain.NAME }
+                </div>
+                chainOptions.push({
                     label: item,
                     value: i,
                     search: chain.NAME
                 })
             }
         })
-        
-        setOptions(newOptions)
-        setChain(newOptions[0]?.value)
+
+        setOptions(chainOptions)
+        setChain(chainOptions[0]?.value)
     }, [chainConfigs])
 
     useEffect(() => {
-        let newOptions: DropdownOption[] = []
-        
+        const tokenOptions: DropdownOption[] = []
+
         chainConfigs?.forEach((chain: any, i: number) => {
             const { chain: ch } = getChainParams();
 
-            let item = <div className='select-dropdown'>
-                <img alt = { chain.NAME[0] } src = { chain.IMAGE } />
-                { chain.ID == ch ? chain.TOKEN : chain.NAME }
+            if ((chain.CONTRACTADDRESS && chain.HOSTID == ch) || chain.ID == ch) {
+                const item = <div className='select-dropdown'>
+                    <img alt = { chain.NAME[0] } src = { chain.IMAGE } />
+                    { chain.ID == ch ? chain.TOKEN : chain.NAME }
 
-                <span style={{color: 'rgb(180, 180, 183)', fontSize: "10px", marginLeft: "5px"}}>
+                    <span style={{color: 'rgb(180, 180, 183)', fontSize: "10px", marginLeft: "5px"}}>
                     {
                         chain.CONTRACTADDRESS ?
-                        "ERC20" :
-                        "Native"
+                          "ERC20" :
+                          "Native"
                     }
-                </span>
-            </div>
+                    </span>
+                </div>
 
-            if((chain.CONTRACTADDRESS && chain.HOSTID == ch) || chain.ID == ch) {
-                newOptions.push({
+                tokenOptions.push({
                     label: item,
                     value: i,
                     search: chain.NAME
@@ -125,8 +115,8 @@ const FaucetForm = (props: any) => {
             }
         })
 
-        setTokenOptions(newOptions)
-        setToken(newOptions[0]?.value)
+        setTokenOptions(tokenOptions)
+        setToken(tokenOptions[0]?.value)
     }, [chainConfigs, chain])
 
     const getConfigByTokenAndNetwork = (token: any, network: any): number => {
@@ -135,7 +125,7 @@ const FaucetForm = (props: any) => {
         try {
             token = token?.toUpperCase();
             network = network?.toUpperCase();
-            
+
             chainConfigs.forEach((chain: any, i: number): any => {
                 if(chain.TOKEN == token && chain.HOSTID == network) {
                     selectedConfig = i;
@@ -152,11 +142,11 @@ const FaucetForm = (props: any) => {
 
     useEffect(() => {
         const query = queryString.parse(window.location.search)
-        
+
         const { address, subnet, erc20 } = query
 
         const tokenIndex: number = getConfigByTokenAndNetwork(erc20, subnet)
-        
+
         if(typeof address == "string") {
             updateAddress(address)
         }
@@ -180,12 +170,10 @@ const FaucetForm = (props: any) => {
     }
 
     function getChainParams(): {chain: string, erc20: string} {
-        let params = {
+        return {
             chain: chainConfigs[chain!]?.ID,
             erc20: chainConfigs[token!]?.ID
         }
-
-        return params
     }
 
     async function updateBalance(): Promise<void> {
@@ -198,7 +186,7 @@ const FaucetForm = (props: any) => {
 
         if((chain || chain == 0) && chainConfigs.length > 0) {
             let { chain, erc20 } = getChainParams()
-            
+
             const response: AxiosResponse = await props.axios.get(props.config.api.getBalance, {
                 params: {
                     chain,
@@ -206,7 +194,7 @@ const FaucetForm = (props: any) => {
                 },
                 signal: controller.signal
             })
-        
+
             if(response?.data?.balance || response?.data?.balance == 0) {
                 setBalance(response?.data?.balance)
             }
@@ -216,13 +204,13 @@ const FaucetForm = (props: any) => {
     async function updateFaucetAddress(): Promise<void> {
         if((chain || chain == 0) && chainConfigs.length > 0) {
             let { chain } = getChainParams()
-            
+
             const response: AxiosResponse = await props.axios.get(props.config.api.faucetAddress, {
                 params: {
                     chain
                 }
             })
-            
+
             if(response?.data) {
                 setFaucetAddress(response?.data?.address)
             }
@@ -263,7 +251,7 @@ const FaucetForm = (props: any) => {
 
     function updateAddress(addr: any): void {
         setInputAddress(addr!)
-        
+
         if (addr) {
             if (ethers.utils.isAddress(addr)) {
                 setAddress(addr)
@@ -282,7 +270,7 @@ const FaucetForm = (props: any) => {
 
     function updateChain(option: any): void {
         let chainNum: number = option.value
-        
+
         if(chainNum >= 0 &&  chainNum < chainConfigs.length) {
             setChain(chainNum)
             back()
@@ -291,7 +279,7 @@ const FaucetForm = (props: any) => {
 
     function updateToken(option: any): void {
         let tokenNum: number = option.value
-        
+
         if(tokenNum >= 0 &&  tokenNum < chainConfigs.length) {
             setToken(tokenNum)
             back()
@@ -310,7 +298,7 @@ const FaucetForm = (props: any) => {
     async function sendToken(): Promise<void> {
         if(!shouldAllowSend) {
             return
-        } 
+        }
         let data: any
         try {
             setIsLoading(true)
@@ -502,7 +490,7 @@ const FaucetForm = (props: any) => {
 
                     <div style={{ display: sendTokenResponse?.txHash ? "none" : "block" }}>
                         <p className='rate-limit-text'>
-                            Drops are limited to 
+                            Drops are limited to
                             <span>
                                 {chainConfigs[token!]?.RATELIMIT?.MAX_LIMIT} request in {toString(chainConfigs[token!]?.RATELIMIT?.WINDOW_SIZE)}.
                             </span>
@@ -524,11 +512,11 @@ const FaucetForm = (props: any) => {
                         <span className='rate-limit-text' style={{color: "red"}}>{sendTokenResponse?.message}</span>
 
                         <div className='v2-recaptcha' style={{marginTop: "10px"}}></div>
-                        
+
                         <div className="beta-alert">
                             <p>This is a testnet faucet. Funds are not real.</p>
                         </div>
-                    
+
                         <button className={shouldAllowSend ? 'send-button' : 'send-button-disabled'} onClick={sendToken}>
                             {
                                 isLoading
@@ -539,7 +527,7 @@ const FaucetForm = (props: any) => {
                             }
                         </button>
                     </div>
-                    
+
                     <div style={{ display: sendTokenResponse?.txHash ? "block" : "none" }}>
                         <p className='rate-limit-text'>
                             {sendTokenResponse?.message}
