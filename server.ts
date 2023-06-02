@@ -158,7 +158,7 @@ function prepareRoutes(
     })
 
     // GET request for fetching faucet address for the specified chain
-    router.get('/faucetAddress', async (req: any, res: any) => {
+    router.get('/faucetAddress', (req: any, res: any) => {
         const chain: string = req.query?.chain
         const evm = evmMap.get(chain);
         const address = evm?.address;
