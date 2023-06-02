@@ -1,49 +1,145 @@
 {
-    "GLOBAL_RL": {
-        "ID": "GLOBAL",
-        "RATELIMIT": {
-            "REVERSE_PROXIES": 2,
-            "MAX_LIMIT": 40,
-            "WINDOW_SIZE": 1,
-            "PATH": "/",
-            "SKIP_FAILED_REQUESTS": false
-        }
+  "GLOBAL_RL": {
+    "ID": "GLOBAL",
+    "RATELIMIT": {
+      "REVERSE_PROXIES": 2,
+      "MAX_LIMIT": 40,
+      "WINDOW_SIZE": 1,
+      "PATH": "/",
+      "SKIP_FAILED_REQUESTS": false
+    }
+  },
+  "evmchains": [
+    {
+      "ID": "KHALANITESTNET",
+      "NAME": "Khalani (Testnet)",
+      "TOKEN": "KHA",
+      "RPC": "https://testnet.khalani.network/",
+      "CHAINID": 10012,
+      "EXPLORER": "https://khalani-axon-explorer-staging.digipnyx.org/",
+      "IMAGE": "https://drive.google.com/uc?export=view&id=1rWENxCSh0ugo9cXGm0AEheUHtXlui18i",
+      "MAX_PRIORITY_FEE": "10000000000",
+      "MAX_FEE": "100000000000",
+      "DRIP_AMOUNT": 2,
+      "DECIMALS": 18,
+      "RECALIBRATE": 30,
+      "RATELIMIT": {
+        "MAX_LIMIT": 1,
+        "WINDOW_SIZE": 60
+      }
     },
-    "evmchains": [
-        {
-            "ID": "KHALANITESTNET",
-            "NAME": "Khalani (Testnet)",
-            "TOKEN": "KHA",
-            "RPC": "<SECRET>",
-            "CHAINID": 10012,
-            "EXPLORER": "https://khalani-axon-explorer-staging.digipnyx.org/",
-            "IMAGE": "https://drive.google.com/uc?export=view&id=1rWENxCSh0ugo9cXGm0AEheUHtXlui18i",
-            "MAX_PRIORITY_FEE": "10000000000",
-            "MAX_FEE": "100000000000",
-            "DRIP_AMOUNT": 2,
-            "DECIMALS": 18,
-            "RECALIBRATE": 30,
-            "RATELIMIT": {
-                "MAX_LIMIT": 1,
-                "WINDOW_SIZE": 60
-            }
-        }
-    ],
-    "erc20tokens": [
-        {
-            "ID": "USDCKHALANITESTNET",
-            "HOSTID": "KHALANITESTNET",
-            "NAME": "USDC",
-            "TOKEN": "USDC",
-            "IMAGE": "https://cryptologos.cc/logos/usd-coin-usdc-logo.png",
-            "CONTRACTADDRESS": "0x47e4F578Baa6A63891Ee5Ba2D08fcf0c5b8d8307",
-            "DRIP_AMOUNT": 1000,
-            "GASLIMIT": "100000",
-            "DECIMALS": 6,
-            "RATELIMIT": {
-                "MAX_LIMIT": 1,
-                "WINDOW_SIZE": 60
-            }
-        }
-    ]
+    {
+      "ID": "BSCTESTNET",
+      "NAME": "BSC Testnet",
+      "TOKEN": "tBNB",
+      "RPC": "https://data-seed-prebsc-1-s1.binance.org:8545/",
+      "CHAINID": 97,
+      "EXPLORER": "https://testnet.bscscan.com/",
+      "IMAGE": "https://cryptologos.cc/logos/binance-usd-busd-logo.png",
+      "MAX_PRIORITY_FEE": "10000000000",
+      "MAX_FEE": "100000000000",
+      "DRIP_AMOUNT": 0,
+      "DECIMALS": 18,
+      "RECALIBRATE": 30,
+      "RATELIMIT": {
+        "MAX_LIMIT": 1,
+        "WINDOW_SIZE": 60
+      }
+    },
+    {
+      "ID": "GODWOKENTESTNET",
+      "NAME": "Godwoken Testnet",
+      "TOKEN": "pCKB",
+      "RPC": "https://v1.testnet.godwoken.io/rpc",
+      "CHAINID": 71401,
+      "EXPLORER": "https://v1.testnet.gwscan.com/",
+      "IMAGE": "https://drive.google.com/uc?export=view&id=1Q3e3XK5YIjEZCypgOqgFmR8oOXl8qc2g",
+      "MAX_PRIORITY_FEE": "10000000000",
+      "MAX_FEE": "100000000000",
+      "DRIP_AMOUNT": 0,
+      "DECIMALS": 18,
+      "RECALIBRATE": 30,
+      "RATELIMIT": {
+        "MAX_LIMIT": 1,
+        "WINDOW_SIZE": 60
+      }
+    }
+  ],
+  "erc20tokens": [
+    {
+      "ID": "USDCBSCTESTNET",
+      "HOSTID": "BSCTESTNET",
+      "NAME": "USDC",
+      "TOKEN": "USDC",
+      "IMAGE": "https://cryptologos.cc/logos/usd-coin-usdc-logo.png",
+      "CONTRACTADDRESS": "0x24bcc5d1F6538F4a84Cd9009ebD4Fa614904fA59",
+      "DRIP_AMOUNT": 1000,
+      "GASLIMIT": "100000",
+      "DECIMALS": 6,
+      "RATELIMIT": {
+        "MAX_LIMIT": 1,
+        "WINDOW_SIZE": 60
+      }
+    },
+    {
+      "ID": "USDTBSCTESTNET",
+      "HOSTID": "BSCTESTNET",
+      "NAME": "USDT",
+      "TOKEN": "USDT",
+      "IMAGE": "https://cryptologos.cc/logos/tether-usdt-logo.png",
+      "CONTRACTADDRESS": "0xdf830a3F120515bd99fE6Bc8513537713e204BC5",
+      "DRIP_AMOUNT": 1000,
+      "GASLIMIT": "100000",
+      "DECIMALS": 6,
+      "RATELIMIT": {
+        "MAX_LIMIT": 1,
+        "WINDOW_SIZE": 60
+      }
+    },
+    {
+      "ID": "BUSDBSCTESTNET",
+      "HOSTID": "BSCTESTNET",
+      "NAME": "BUSD",
+      "TOKEN": "BUSD",
+      "IMAGE": "https://cryptologos.cc/logos/binance-usd-busd-logo.png?v=025",
+      "CONTRACTADDRESS": "0x8f9C8f120d5E751b24d96d9c683B8d0450b45DBc",
+      "DRIP_AMOUNT": 1000,
+      "GASLIMIT": "100000",
+      "DECIMALS": 18,
+      "RATELIMIT": {
+        "MAX_LIMIT": 1,
+        "WINDOW_SIZE": 60
+      }
+    },
+    {
+      "ID": "USDCGODWOKENTESTNET",
+      "HOSTID": "GODWOKENTESTNET",
+      "NAME": "USDC",
+      "TOKEN": "USDC",
+      "IMAGE": "https://cryptologos.cc/logos/usd-coin-usdc-logo.png",
+      "CONTRACTADDRESS": "0x8f9C8f120d5E751b24d96d9c683B8d0450b45DBc",
+      "DRIP_AMOUNT": 1000,
+      "GASLIMIT": "100000",
+      "DECIMALS": 6,
+      "RATELIMIT": {
+        "MAX_LIMIT": 1,
+        "WINDOW_SIZE": 60
+      }
+    },
+    {
+      "ID": "USDTGODWOKENTESTNET",
+      "HOSTID": "GODWOKENTESTNET",
+      "NAME": "USDT",
+      "TOKEN": "USDT",
+      "IMAGE": "https://cryptologos.cc/logos/tether-usdt-logo.png",
+      "CONTRACTADDRESS": "0xED84fBAAa27D1136101D0b1d18B1FF194C17dBC3",
+      "DRIP_AMOUNT": 1000,
+      "GASLIMIT": "100000",
+      "DECIMALS": 6,
+      "RATELIMIT": {
+        "MAX_LIMIT": 1,
+        "WINDOW_SIZE": 60
+      }
+    }
+  ]
 }
