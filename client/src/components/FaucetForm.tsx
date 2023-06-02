@@ -47,7 +47,28 @@ const FaucetForm = (props: any) => {
 
     // Update balance whenver chain changes or after transaction is processed
     useEffect(() => {
-        updateBalance()
+        if (chain !== null && chainConfigs.length > 0) {
+            // Abort pending requests
+            const controller = new AbortController();
+            if (isFetchingBalance) {
+                isFetchingBalance.abort()
+            }
+            setIsFetchingBalance(controller)
+
+            const { chain, erc20 } = getChainParams()
+
+            props.axios.get(props.config.api.getBalance, {
+                params: {
+                    chain,
+                    erc20
+                },
+                signal: controller.signal
+            }).then((response: AxiosResponse) => {
+              if (response?.data?.balance !== undefined) {
+                setBalance(response?.data?.balance)
+              }
+            })
+        }
     }, [chain, token, sendTokenResponse, chainConfigs])
 
     // Make REQUEST button disabled if either address is not valid or balance is low
@@ -116,7 +137,7 @@ const FaucetForm = (props: any) => {
         })
 
         setTokenOptions(tokenOptions)
-        setToken(tokenOptions[0]?.value)
+        setToken(tokenOptions?.[0]?.value)
     }, [chainConfigs, chain])
 
     const getConfigByTokenAndNetwork = (token: any, network: any): number => {
@@ -173,31 +194,6 @@ const FaucetForm = (props: any) => {
         return {
             chain: chainConfigs[chain!]?.ID,
             erc20: chainConfigs[token!]?.ID
-        }
-    }
-
-    async function updateBalance(): Promise<void> {
-        // Abort pending requests
-        const controller = new AbortController();
-        if(isFetchingBalance) {
-            isFetchingBalance.abort()
-        }
-        setIsFetchingBalance(controller)
-
-        if((chain || chain == 0) && chainConfigs.length > 0) {
-            let { chain, erc20 } = getChainParams()
-
-            const response: AxiosResponse = await props.axios.get(props.config.api.getBalance, {
-                params: {
-                    chain,
-                    erc20
-                },
-                signal: controller.signal
-            })
-
-            if(response?.data?.balance || response?.data?.balance == 0) {
-                setBalance(response?.data?.balance)
-            }
         }
     }
 
