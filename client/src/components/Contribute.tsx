@@ -1,4 +1,4 @@
-import { useState } from 'react' 
+import { useState } from 'react'
 import './styles/Contribute.css'
 
 const Contribute = () => {
@@ -13,7 +13,7 @@ const Contribute = () => {
             className = {`contribute-button ${hiddenClass}`}
             onClick={
                 () => {
-                    window.open('https://github.com/ava-labs/avalanche-faucet', '_blank')
+                    window.open('https://github.com/tvl-labs/faucet', '_blank')
                 }
             }>
             <img alt='github' src="/github.webp"/>
