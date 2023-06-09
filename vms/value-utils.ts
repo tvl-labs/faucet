@@ -1,10 +1,8 @@
 import BN from "bn.js";
 
-export function calculateBaseUnit(amount: BN, decimals: number): BN {
-  for (let i = 0; i < decimals; i++) {
-    amount = amount.mul(new BN(10));
-  }
-  return amount;
+export function calculateBaseUnit(amount: number, decimals: number): BN {
+  const base = new BN(10).pow(new BN(decimals));
+  return base.muln(amount);
 }
 
 export function calculatePresentableUnit(amount: BN, decimals: number): number {

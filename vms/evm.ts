@@ -96,12 +96,12 @@ export default class EVM {
             return { status: 400, message: "High faucet usage! Please try after sometime" };
         }
 
-        let amount: BN = calculateBaseUnit(new BN(this.config.DRIP_AMOUNT), this.config.DECIMALS || 18)
+        let amount: BN = calculateBaseUnit(this.config.DRIP_AMOUNT, this.config.DECIMALS || 18)
 
         // If id is provided, then it is ERC20 token transfer, so update the amount
         if (erc20) {
             const contract = this.contracts.get(erc20)!;
-            amount = calculateBaseUnit(new BN(contract.dripAmount), contract.decimals || 18)
+            amount = calculateBaseUnit(contract.dripAmount, contract.decimals || 18)
         }
 
         const requestId = `${++globalRequestId}`;

@@ -12,7 +12,7 @@ async function main() {
   const kmsKeyId = process.env.KMS_KEY_ID as string;
   const chainID = process.env.CHAIN_ID as string;
   const recipient = process.env.RECIPIENT as string;
-  const amount = 1;
+  const amount = parseFloat(process.env.AMOUNT as string);
   const chains = chainsJson as ChainType[];
   const chain = chains.find((c) => c.ID === chainID);
   if (!chain) {
