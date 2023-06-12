@@ -1,0 +1,146 @@
+[
+  {
+    "ID": "KHALANITESTNET",
+    "NAME": "Khalani (Testnet)",
+    "TOKEN": "KHA",
+    "RPC": "<SECRET>",
+    "CHAINID": 10012,
+    "EXPLORER": "https://khalani-axon-explorer-staging.digipnyx.org/",
+    "IMAGE": "https://drive.google.com/uc?export=view&id=1rWENxCSh0ugo9cXGm0AEheUHtXlui18i",
+    "MAX_PRIORITY_FEE": "10000000000",
+    "MAX_FEE": "100000000000",
+    "DRIP_AMOUNT": 2,
+    "DECIMALS": 18,
+    "RECALIBRATE": 30,
+    "RATELIMIT": {
+      "MAX_LIMIT": 1,
+      "WINDOW_SIZE": 60
+    }
+  },
+  {
+    "ID": "SEPOLIA",
+    "NAME": "Sepolia",
+    "TOKEN": "ETH",
+    "RPC": "<SECRET>",
+    "CHAINID": 11155111,
+    "EXPLORER": "https://sepolia.etherscan.io/",
+    "IMAGE": "https://cryptologos.cc/logos/ethereum-eth-logo.png?v=025",
+    "MAX_PRIORITY_FEE": "10000000000",
+    "MAX_FEE": "100000000000",
+    "DRIP_AMOUNT": 0,
+    "DECIMALS": 18,
+    "RECALIBRATE": 30,
+    "RATELIMIT": {
+      "MAX_LIMIT": 1,
+      "WINDOW_SIZE": 60
+    }
+  },
+  {
+    "ID": "FUJI",
+    "NAME": "Fuji",
+    "TOKEN": "AVAX",
+    "RPC": "<SECRET>",
+    "CHAINID": 43113,
+    "EXPLORER": "https://testnet.snowtrace.io/",
+    "IMAGE": "https://glacier-api.avax.network/proxy/chain-assets/main/chains/43113/chain-logo.png",
+    "MAX_PRIORITY_FEE": "10000000000",
+    "MAX_FEE": "100000000000",
+    "DRIP_AMOUNT": 0,
+    "DECIMALS": 18,
+    "RECALIBRATE": 30,
+    "RATELIMIT": {
+      "MAX_LIMIT": 1,
+      "WINDOW_SIZE": 60
+    }
+  },
+  {
+    "ID": "MUMBAI",
+    "NAME": "Mumbai (Polygon)",
+    "TOKEN": "MATIC",
+    "RPC": "<SECRET>",
+    "CHAINID": 80001,
+    "EXPLORER": "https://mumbai.polygonscan.com/",
+    "IMAGE": "https://cryptologos.cc/logos/polygon-matic-logo.png",
+    "MAX_PRIORITY_FEE": "10000000000",
+    "MAX_FEE": "100000000000",
+    "DRIP_AMOUNT": 0,
+    "DECIMALS": 18,
+    "RECALIBRATE": 30,
+    "RATELIMIT": {
+      "MAX_LIMIT": 1,
+      "WINDOW_SIZE": 60
+    }
+  },
+  {
+    "ID": "BSCTESTNET",
+    "NAME": "BSC Testnet",
+    "TOKEN": "tBNB",
+    "RPC": "<SECRET>",
+    "CHAINID": 97,
+    "EXPLORER": "https://testnet.bscscan.com/",
+    "IMAGE": "https://cryptologos.cc/logos/binance-usd-busd-logo.png",
+    "MAX_PRIORITY_FEE": "10000000000",
+    "MAX_FEE": "100000000000",
+    "DRIP_AMOUNT": 0,
+    "DECIMALS": 18,
+    "RECALIBRATE": 30,
+    "RATELIMIT": {
+      "MAX_LIMIT": 1,
+      "WINDOW_SIZE": 60
+    }
+  },
+  {
+    "ID": "ARBITRUMGOERLI",
+    "NAME": "Arbitrum Goerli",
+    "TOKEN": "AGOR",
+    "RPC": "<SECRET>",
+    "CHAINID": 421613,
+    "EXPLORER": "https://testnet.arbiscan.io/",
+    "IMAGE": "https://cryptologos.cc/logos/arbitrum-arb-logo.png",
+    "MAX_PRIORITY_FEE": "10000000000",
+    "MAX_FEE": "100000000000",
+    "DRIP_AMOUNT": 0,
+    "DECIMALS": 18,
+    "RECALIBRATE": 30,
+    "RATELIMIT": {
+      "MAX_LIMIT": 1,
+      "WINDOW_SIZE": 60
+    }
+  },
+  {
+    "ID": "OPTIMISMGOERLI",
+    "NAME": "Optimism Goerli",
+    "TOKEN": "ETH",
+    "RPC": "<SECRET>",
+    "CHAINID": 420,
+    "EXPLORER": "https://goerli-optimism.etherscan.io/",
+    "IMAGE": "https://cryptologos.cc/logos/optimism-ethereum-op-logo.png",
+    "MAX_PRIORITY_FEE": "10000000000",
+    "MAX_FEE": "100000000000",
+    "DRIP_AMOUNT": 0,
+    "DECIMALS": 18,
+    "RECALIBRATE": 30,
+    "RATELIMIT": {
+      "MAX_LIMIT": 1,
+      "WINDOW_SIZE": 60
+    }
+  },
+  {
+    "ID": "GODWOKENTESTNET",
+    "NAME": "Godwoken Testnet",
+    "TOKEN": "pCKB",
+    "RPC": "<SECRET>",
+    "CHAINID": 71401,
+    "EXPLORER": "https://v1.testnet.gwscan.com/",
+    "IMAGE": "https://drive.google.com/uc?export=view&id=1Q3e3XK5YIjEZCypgOqgFmR8oOXl8qc2g",
+    "MAX_PRIORITY_FEE": "10000000000",
+    "MAX_FEE": "100000000000",
+    "DRIP_AMOUNT": 0,
+    "DECIMALS": 18,
+    "RECALIBRATE": 30,
+    "RATELIMIT": {
+      "MAX_LIMIT": 1,
+      "WINDOW_SIZE": 60
+    }
+  }
+]

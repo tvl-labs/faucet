@@ -96,10 +96,13 @@ async function configureEvmMap(configFile: ConfigFileType): Promise<Map<string, 
         if (pk) {
             evmSigner = await PkSigner.create(chain, pk);
         } else {
-            evmSigner = await KmsEvmSigner.create(chain, log);
+            const awsRegion = process.env["AWS_REGION"]!;
+            const kmsKeyId = process.env[`AWS_KMS_KEY_${chain.ID}`]!;
+            evmSigner = await KmsEvmSigner.create(chain.ID, chain.RPC, awsRegion, kmsKeyId, log);
+            console.log(`Created Web3 KMS provider with address ${evmSigner.address} for chain ${chain.NAME}`);
         }
         const evm = new EVM(chain, evmSigner, log);
-        await evm.start();
+        await evm.start(false);
         evmMap.set(chain.ID, evm);
     }
 

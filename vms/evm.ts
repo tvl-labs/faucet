@@ -65,9 +65,12 @@ export default class EVM {
         this.lastRecalibrationTimestamp = 0
     }
 
-    async start() {
+    async start(waitForInitialRecalibration: boolean) {
         this.isLegacyTransaction = await this.isLegacyTransactionType()
 
+        if (waitForInitialRecalibration) {
+            await this.recalibrate();
+        }
         setInterval(() => this.recalibrate(), 1000);
 
         setInterval(() => this.scheduleFromMemPool(), 1000);
@@ -93,12 +96,12 @@ export default class EVM {
             return { status: 400, message: "High faucet usage! Please try after sometime" };
         }
 
-        let amount: BN = calculateBaseUnit(this.config.DRIP_AMOUNT.toString(), this.config.DECIMALS || 18)
+        let amount: BN = calculateBaseUnit(this.config.DRIP_AMOUNT, this.config.DECIMALS || 18)
 
         // If id is provided, then it is ERC20 token transfer, so update the amount
         if (erc20) {
             const contract = this.contracts.get(erc20)!;
-            amount = calculateBaseUnit(contract.dripAmount.toString(), contract.decimals || 18)
+            amount = calculateBaseUnit(contract.dripAmount, contract.decimals || 18)
         }
 
         const requestId = `${++globalRequestId}`;
