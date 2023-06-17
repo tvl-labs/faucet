@@ -114,7 +114,8 @@ const FaucetForm = (props: any) => {
         chainConfigs?.forEach((chain: any, i: number) => {
             const { chain: ch } = getChainParams();
 
-            if ((chain.CONTRACTADDRESS && chain.HOSTID == ch) || chain.ID == ch) {
+            if ((chain.CONTRACTADDRESS && chain.HOSTID == ch) || 
+                (chain.ID === ch && chain.DRIP_AMOUNT !== 0)) {
                 const item = <div className='select-dropdown'>
                     <img alt = { chain.NAME[0] } src = { chain.IMAGE } />
                     { chain.ID == ch ? chain.TOKEN : chain.NAME }
