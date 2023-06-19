@@ -112,7 +112,8 @@ const FaucetForm = (props: any) => {
     useEffect(() => {
         const tokenOptions: DropdownOption[] = []
 
-        chainConfigs?.forEach((chain: any, i: number) => {
+        const data = [...tokenConfigs, ...chainConfigs]
+        data?.forEach((chain: any, i: number) => {
             const { chain: ch } = getChainParams();
 
             if ((chain.CONTRACTADDRESS && chain.HOSTID == ch) || 
@@ -189,9 +190,8 @@ const FaucetForm = (props: any) => {
         const response: AxiosResponse = await props.axios.get(
             props.config.api.getChainConfigs
         )
-        console.log(response)
         setChainConfigs(response?.data?.chains)
-        setTokenConfigs(response?.data?.tokens)
+        setTokenConfigs(response?.data?.erc20tokens)
     }
 
     function getChainParams(): {chain: string, erc20: string} {
