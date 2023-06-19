@@ -10,6 +10,7 @@ import queryString from 'query-string'
 import { DropdownOption } from './types'
 import { connectAccount } from './Metamask'
 import { AxiosResponse } from 'axios'
+import { ChainType, ERC20Type } from '../../../vms/config-types'
 
 const FaucetForm = (props: any) => {
     const [chain, setChain] = useState<number | null>(null)
@@ -17,8 +18,8 @@ const FaucetForm = (props: any) => {
     const [widgetID, setwidgetID] = useState(new Map())
     const [recaptcha, setRecaptcha] = useState<ReCaptcha | undefined>(undefined)
     const [isV2, setIsV2] = useState<boolean>(false)
-    const [chainConfigs, setChainConfigs] = useState<any>([])
-    const [tokenConfigs, setTokenConfigs] = useState<any>([])
+    const [chainConfigs, setChainConfigs] = useState<ChainType[]>([])
+    const [tokenConfigs, setTokenConfigs] = useState<ERC20Type[]>([])
     const [inputAddress, setInputAddress] = useState<string>("")
     const [address, setAddress] = useState<string | null>(null)
     const [faucetAddress, setFaucetAddress] = useState<string | null>(null)
@@ -42,6 +43,7 @@ const FaucetForm = (props: any) => {
             setwidgetID
         ))
         updateChainConfigs()
+        updateTokenConfigs()
         connectAccount(updateAddress, false)
 
     }, [])
@@ -75,7 +77,7 @@ const FaucetForm = (props: any) => {
     // Make REQUEST button disabled if either address is not valid or balance is low
     useEffect(() => {
         if(address) {
-            if(BigInt(balance) > calculateBaseUnit(chainConfigs[token!]?.DRIP_AMOUNT, chainConfigs[token!]?.DECIMALS)) {
+            if(BigInt(balance) > calculateBaseUnit(chainConfigs[token!]?.DRIP_AMOUNT.toString(), chainConfigs[token!]?.DECIMALS)) {
                 setShouldAllowSend(true)
                 return
             }
@@ -111,37 +113,40 @@ const FaucetForm = (props: any) => {
 
     useEffect(() => {
         const tokenOptions: DropdownOption[] = []
-
-        const data = [...tokenConfigs, ...chainConfigs]
-        data?.forEach((chain: any, i: number) => {
-            const { chain: ch } = getChainParams();
-
-            if ((chain.CONTRACTADDRESS && chain.HOSTID == ch) || 
-                (chain.ID === ch && chain.DRIP_AMOUNT !== 0)) {
-                const item = <div className='select-dropdown'>
-                    <img alt = { chain.NAME[0] } src = { chain.IMAGE } />
-                    { chain.ID == ch ? chain.TOKEN : chain.NAME }
-
-                    <span style={{color: 'rgb(180, 180, 183)', fontSize: "10px", marginLeft: "5px"}}>
-                    {
-                        chain.CONTRACTADDRESS ?
-                          "ERC20" :
-                          "Native"
-                    }
-                    </span>
-                </div>
-
+        const { chain: selectedChain } = getChainParams();
+        tokenConfigs.forEach((token, i) => {
+            if ((token.CONTRACTADDRESS && token.HOSTID === selectedChain)) {
                 tokenOptions.push({
-                    label: item,
+                    label: createTokenOption(token, selectedChain, "ERC20"),
+                    value: i,
+                    search: token.NAME
+                })
+            }
+        })
+
+        chainConfigs.forEach((chain, i) => {
+            if(chain.ID === selectedChain && chain.DRIP_AMOUNT !== 0) {
+                tokenOptions.push({
+                    label: createTokenOption(chain, selectedChain, "Native"),
                     value: i,
                     search: chain.NAME
                 })
             }
         })
-
         setTokenOptions(tokenOptions)
         setToken(tokenOptions?.[0]?.value)
-    }, [chainConfigs, chain])
+    }, [chainConfigs, tokenConfigs, chain])
+
+    const createTokenOption = (config: ERC20Type | ChainType, selectedChain: string, type: string) => (
+        <div className='select-dropdown'>
+            <img alt={ config.NAME[0] } src={ config.IMAGE } />
+            { config.ID === selectedChain ? config.TOKEN : config.NAME }
+
+            <span style={{color: 'rgb(180, 180, 183)', fontSize: "10px", marginLeft: "5px"}}>
+            {type}
+            </span>
+        </div>
+    )
 
     const getConfigByTokenAndNetwork = (token: any, network: any): number => {
         let selectedConfig = 0;
@@ -190,8 +195,14 @@ const FaucetForm = (props: any) => {
         const response: AxiosResponse = await props.axios.get(
             props.config.api.getChainConfigs
         )
-        setChainConfigs(response?.data?.chains)
-        setTokenConfigs(response?.data?.erc20tokens)
+        setChainConfigs(response?.data)
+    }
+
+    async function updateTokenConfigs(): Promise<void> {
+        const response: AxiosResponse = await props.axios.get(
+            props.config.api.getTokenConfigs
+        )
+        setTokenConfigs(response?.data)
     }
 
     function getChainParams(): {chain: string, erc20: string} {

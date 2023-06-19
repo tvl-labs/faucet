@@ -10,6 +10,7 @@ export const config = {
     api: {
         sendToken: '/sendToken',
         getChainConfigs: '/getChainConfigs',
+        getTokenConfigs: '/getTokenConfigs',
         getBalance: '/getBalance',
         faucetAddress: 'faucetAddress'
     },
