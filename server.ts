@@ -154,11 +154,15 @@ function prepareRoutes(
     });
     router.post('/sendToken', sendTokenHandlers)
 
-    // GET request for fetching all the chain and token configurations
-    router.get('/getChainConfigs', (req: any, res: any) => {
-        const configs: any = [...configFile.evmchains, ...configFile.erc20tokens]
-        res.send({ configs })
-    })
+    // GET request for fetching all the chain configurations
+    router.get('/getChainConfigs', (req: any, res: any) => 
+        res.send(configFile.evmchains)
+    )
+
+    // GET request for fetching all the token configurations
+    router.get('/getTokenConfigs', (req: any, res: any) => 
+        res.send(configFile.erc20tokens)
+    )
 
     // GET request for fetching faucet address for the specified chain
     router.get('/faucetAddress', (req: any, res: any) => {

@@ -10,6 +10,7 @@ import queryString from 'query-string'
 import { DropdownOption } from './types'
 import { connectAccount } from './Metamask'
 import { AxiosResponse } from 'axios'
+import { ChainType, ERC20Type } from '../../../vms/config-types'
 
 const FaucetForm = (props: any) => {
     const [chain, setChain] = useState<number | null>(null)
@@ -17,7 +18,8 @@ const FaucetForm = (props: any) => {
     const [widgetID, setwidgetID] = useState(new Map())
     const [recaptcha, setRecaptcha] = useState<ReCaptcha | undefined>(undefined)
     const [isV2, setIsV2] = useState<boolean>(false)
-    const [chainConfigs, setChainConfigs] = useState<any>([])
+    const [chainConfigs, setChainConfigs] = useState<ChainType[]>([])
+    const [tokenConfigs, setTokenConfigs] = useState<ERC20Type[]>([])
     const [inputAddress, setInputAddress] = useState<string>("")
     const [address, setAddress] = useState<string | null>(null)
     const [faucetAddress, setFaucetAddress] = useState<string | null>(null)
@@ -32,6 +34,8 @@ const FaucetForm = (props: any) => {
         message: null
     })
 
+    const joinedTokens = [ ...chainConfigs, ...tokenConfigs].filter((c) => c.DRIP_AMOUNT !== 0)
+
     // Update chain configs
     useEffect(() => {
         setRecaptcha(new ReCaptcha(
@@ -41,6 +45,7 @@ const FaucetForm = (props: any) => {
             setwidgetID
         ))
         updateChainConfigs()
+        updateTokenConfigs()
         connectAccount(updateAddress, false)
 
     }, [])
@@ -74,7 +79,7 @@ const FaucetForm = (props: any) => {
     // Make REQUEST button disabled if either address is not valid or balance is low
     useEffect(() => {
         if(address) {
-            if(BigInt(balance) > calculateBaseUnit(chainConfigs[token!]?.DRIP_AMOUNT, chainConfigs[token!]?.DECIMALS)) {
+            if(BigInt(balance) > calculateBaseUnit(joinedTokens[token!]?.DRIP_AMOUNT.toString(), joinedTokens[token!]?.DECIMALS)) {
                 setShouldAllowSend(true)
                 return
             }
@@ -110,35 +115,41 @@ const FaucetForm = (props: any) => {
 
     useEffect(() => {
         const tokenOptions: DropdownOption[] = []
-
-        chainConfigs?.forEach((chain: any, i: number) => {
-            const { chain: ch } = getChainParams();
-
-            if ((chain.CONTRACTADDRESS && chain.HOSTID == ch) || chain.ID == ch) {
-                const item = <div className='select-dropdown'>
-                    <img alt = { chain.NAME[0] } src = { chain.IMAGE } />
-                    { chain.ID == ch ? chain.TOKEN : chain.NAME }
-
-                    <span style={{color: 'rgb(180, 180, 183)', fontSize: "10px", marginLeft: "5px"}}>
-                    {
-                        chain.CONTRACTADDRESS ?
-                          "ERC20" :
-                          "Native"
-                    }
-                    </span>
-                </div>
-
+        const { chain: selectedChain } = getChainParams();
+        
+        chainConfigs.forEach((chain, i) => {
+            if(chain.ID === selectedChain && chain.DRIP_AMOUNT !== 0) {
                 tokenOptions.push({
-                    label: item,
+                    label: createTokenOption(chain, selectedChain, "Native"),
                     value: i,
                     search: chain.NAME
+                })
+            }
+        })
+        tokenConfigs.forEach((token, i) => {
+            if ((token.CONTRACTADDRESS && token.HOSTID === selectedChain)) {
+                tokenOptions.push({
+                    label: createTokenOption(token, selectedChain, "ERC20"),
+                    value: i + 1,
+                    search: token.NAME
                 })
             }
         })
 
         setTokenOptions(tokenOptions)
         setToken(tokenOptions?.[0]?.value)
-    }, [chainConfigs, chain])
+    }, [chainConfigs, tokenConfigs, chain])
+
+    const createTokenOption = (config: ERC20Type | ChainType, selectedChain: string, type: string) => (
+        <div className='select-dropdown'>
+            <img alt={ config.NAME[0] } src={ config.IMAGE } />
+            { config.ID === selectedChain ? config.TOKEN : config.NAME }
+
+            <span style={{color: 'rgb(180, 180, 183)', fontSize: "10px", marginLeft: "5px"}}>
+            {type}
+            </span>
+        </div>
+    )
 
     const getConfigByTokenAndNetwork = (token: any, network: any): number => {
         let selectedConfig = 0;
@@ -187,13 +198,21 @@ const FaucetForm = (props: any) => {
         const response: AxiosResponse = await props.axios.get(
             props.config.api.getChainConfigs
         )
-        setChainConfigs(response?.data?.configs)
+        setChainConfigs(response?.data)
     }
+
+    async function updateTokenConfigs(): Promise<void> {
+        const response: AxiosResponse = await props.axios.get(
+            props.config.api.getTokenConfigs
+        )
+        setTokenConfigs(response?.data)
+    }
+
 
     function getChainParams(): {chain: string, erc20: string} {
         return {
             chain: chainConfigs[chain!]?.ID,
-            erc20: chainConfigs[token!]?.ID
+            erc20: joinedTokens[token!]?.ID
         }
     }
 
@@ -276,7 +295,7 @@ const FaucetForm = (props: any) => {
     function updateToken(option: any): void {
         let tokenNum: number = option.value
 
-        if(tokenNum >= 0 &&  tokenNum < chainConfigs.length) {
+        if(tokenNum >= 0 &&  tokenNum < joinedTokens.length) {
             setToken(tokenNum)
             back()
         }
@@ -470,7 +489,7 @@ const FaucetForm = (props: any) => {
                         <div>
                             <div style={{width: "100%"}}>
                                 <span style={{color: "grey", fontSize: "12px", float: "right"}}>
-                                    Faucet balance: {calculateLargestUnit(balance, chainConfigs[token!]?.DECIMALS)} {chainConfigs[token!]?.TOKEN}
+                                    Faucet balance: {calculateLargestUnit(balance, joinedTokens[token!]?.DECIMALS)} {joinedTokens[token!]?.TOKEN}
                                 </span>
 
                                 <span style={{color: "grey", fontSize: "12px"}}>
@@ -488,7 +507,7 @@ const FaucetForm = (props: any) => {
                         <p className='rate-limit-text'>
                             Drops are limited to
                             <span>
-                                {chainConfigs[token!]?.RATELIMIT?.MAX_LIMIT} request in {toString(chainConfigs[token!]?.RATELIMIT?.WINDOW_SIZE)}.
+                                {joinedTokens[token!]?.RATELIMIT?.MAX_LIMIT} request in {toString(joinedTokens[token!]?.RATELIMIT?.WINDOW_SIZE)}.
                             </span>
                         </p>
 
@@ -519,7 +538,7 @@ const FaucetForm = (props: any) => {
                                 ?
                                 <ClipLoader size="20px" speedMultiplier={0.3} color="403F40"/>
                                 :
-                                <span>Request {chainConfigs[token || 0]?.DRIP_AMOUNT} {chainConfigs[token || 0]?.TOKEN}</span>
+                                <span>Request {joinedTokens[token || 0]?.DRIP_AMOUNT} {joinedTokens[token || 0]?.TOKEN}</span>
                             }
                         </button>
                     </div>
