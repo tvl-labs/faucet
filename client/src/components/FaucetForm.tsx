@@ -18,6 +18,7 @@ const FaucetForm = (props: any) => {
     const [recaptcha, setRecaptcha] = useState<ReCaptcha | undefined>(undefined)
     const [isV2, setIsV2] = useState<boolean>(false)
     const [chainConfigs, setChainConfigs] = useState<any>([])
+    const [tokenConfigs, setTokenConfigs] = useState<any>([])
     const [inputAddress, setInputAddress] = useState<string>("")
     const [address, setAddress] = useState<string | null>(null)
     const [faucetAddress, setFaucetAddress] = useState<string | null>(null)
@@ -188,7 +189,9 @@ const FaucetForm = (props: any) => {
         const response: AxiosResponse = await props.axios.get(
             props.config.api.getChainConfigs
         )
-        setChainConfigs(response?.data?.configs)
+        console.log(response)
+        setChainConfigs(response?.data?.chains)
+        setTokenConfigs(response?.data?.tokens)
     }
 
     function getChainParams(): {chain: string, erc20: string} {

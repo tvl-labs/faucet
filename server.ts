@@ -156,8 +156,8 @@ function prepareRoutes(
 
     // GET request for fetching all the chain and token configurations
     router.get('/getChainConfigs', (req: any, res: any) => {
-        const configs: any = [...configFile.evmchains, ...configFile.erc20tokens]
-        res.send({ configs })
+        const configs: any = {chains: configFile.evmchains, erc20tokens: configFile.erc20tokens}
+        res.send(configs)
     })
 
     // GET request for fetching faucet address for the specified chain
