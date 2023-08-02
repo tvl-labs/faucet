@@ -18,8 +18,9 @@ a {
     box-shadow: 0px 3px 1px -2px rgb(0 0 0 / 20%), 0px 2px 2px 0px rgb(0 0 0 / 14%), 0px 1px 5px 0px rgb(0 0 0 / 12%);
     max-width: 492px;
     width: 95%;
-    background-color: rgb(26, 26, 28) !important;
-    border-radius: 8px;
+    background-color: rgb(43, 44, 65) !important;
+    border-radius: 12px;
+    border: 1px solid rgb(60, 61, 82);
     height: fit-content;
 }
 
@@ -40,7 +41,7 @@ a {
     background-position: center;
     background-repeat: no-repeat;
     background-size: 340px;
-    background-color: rgb(26, 26, 28);
+    background-color: rgb(43, 44, 65);
     border-radius: 8px;
     height: 140px;
 }
@@ -90,7 +91,7 @@ a {
     align-items: center;
     color: #333;
     height: 45px;
-    background-color: rgb(43, 43, 43);
+    background-color: rgb(30, 32, 50);
     margin-bottom: 8px;
     border-radius: 5px;
 }
@@ -153,7 +154,7 @@ a {
 }
 
 .send-button:hover {
-    background-color: #333;
+    background-color: rgb(30, 32, 50);
 }
 
 .send-button-disabled {
