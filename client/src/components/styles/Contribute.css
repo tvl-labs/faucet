@@ -9,7 +9,7 @@
     align-items: center;
     justify-content: center;
     border-radius: 15px;
-    background-color: rgb(39, 39, 39);
+    background-color: rgb(43, 44, 65);
     color: rgba(255, 255, 255, 0.7);
     opacity: 0.8;
 }
@@ -21,7 +21,7 @@
 }
 
 .contribute-button:hover {
-    background-color: black;
+    background-color: rgb(43, 44, 65);
     color: white;
 }
 
@@ -34,7 +34,7 @@
         bottom: 10px;
         left: 20px;
     }
-    
+
     .contribute-button > img {
         margin-right: 0px;
         margin-left: 10px;
@@ -44,7 +44,7 @@
         transition: 4s;
         transform: translateX(-190px);
     }
-    
+
     .hide-button:hover {
         transform: translateX(0px);
     }

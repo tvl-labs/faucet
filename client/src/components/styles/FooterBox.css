@@ -8,8 +8,9 @@
 .footer-box {
     max-width: 492px;
     width: 95%;
-    background-color: rgb(26, 26, 28) !important;
-    border-radius: 4px;
+    background-color: rgb(43, 44, 65) !important;
+    border-radius: 12px;
+    border: 1px solid rgb(60, 61, 82);
     height: fit-content;
     margin-top: 20px;
     color: rgb(180, 180, 183);
@@ -20,7 +21,7 @@
     align-items: center;
     color: rgb(149, 149, 149);
     height: 45px;
-    background-color: rgb(43, 43, 43);
+    background-color: rgb(30, 32, 50);
     margin-top: 20px;
     cursor: pointer;
 }
@@ -60,7 +61,7 @@
 }
 
 .add-network:hover {
-    background-color: black;
+    background-color: rgb(30, 32, 50);
     color: white;
 }
 

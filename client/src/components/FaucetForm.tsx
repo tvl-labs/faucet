@@ -116,7 +116,7 @@ const FaucetForm = (props: any) => {
     useEffect(() => {
         const tokenOptions: DropdownOption[] = []
         const { chain: selectedChain } = getChainParams();
-        
+
         chainConfigs.forEach((chain, i) => {
             if(chain.ID === selectedChain && chain.DRIP_AMOUNT !== 0) {
                 tokenOptions.push({
@@ -367,9 +367,9 @@ const FaucetForm = (props: any) => {
     const customStyles = {
         control: (base: any, state: { isFocused: any }) => ({
             ...base,
-            background: "#333",
+            background: "rgb(30, 32, 50)",
             borderRadius: state.isFocused ? "5px 5px 0 0" : 5,
-            borderColor: state.isFocused ? "white" : "#333",
+            borderColor: state.isFocused ? "white" : "rgb(30, 32, 50)",
             boxShadow: null,
             "&:hover": {
                 borderColor: "white"
@@ -379,7 +379,7 @@ const FaucetForm = (props: any) => {
             ...base,
             borderRadius: 0,
             marginTop: 0,
-            background: "rgb(45, 45, 45)",
+            background: "rgb(30, 32, 50)",
             color: "white"
         }),
         menuList: (base: any) => ({
@@ -402,11 +402,11 @@ const FaucetForm = (props: any) => {
             ...styles,
             background: isFocused
                     ?
-                    'black'
+                    'rgb(43, 44, 65)'
                     :
                     isSelected
                     ?
-                    '#333'
+                    'rgb(30, 32, 50)'
                     :
                     undefined,
             zIndex: 1
